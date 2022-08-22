@@ -118,10 +118,39 @@ impl Syscall<'_> {
             "clone: flags={:#x}, newsp={:#x}, parent_tid={:?}, child_tid={:?}, newtls={:#x}",
             flags, newsp, parent_tid, child_tid, newtls
         );
-        if flags == 0x4111 || flags == 0x11 {
+        if (flags & 0x4111)==0x4111 || (flags & 0x11)==0x11 {
             // VFORK | VM | SIGCHILD
             warn!("sys_clone is calling sys_fork instead, ignoring other args");
-            return self.sys_fork();
+            let fork=self.sys_fork();
+            //#[cfg(feature = "namespace")]
+            warn!("use namespace feature");
+            if (flags & 0x20000)!=0{
+                //NEWNS
+
+            }
+            else if(flags & 0x2000000)!=0{
+                //NEWCGROUP
+
+            }
+            else if(flags & 0x4000000)!=0{
+                //NEWUTS
+
+            }
+            else if(flags & 0x8000000)!=0{
+                //NEWIPC
+
+            }
+            else if(flags & 0x10000000)!=0{
+                //NEWUSR
+            }
+            else if(flags & 0x20000000)!=0{
+                //NEWPID
+            }
+            else if(flags & 0x40000000)!=0{
+                //NEWNET
+                
+            }
+            return fork;
         }
         if flags != 0x7d_0f00 && flags != 0x5d_0f00 {
             // 0x5d0f00: gcc of alpine linux

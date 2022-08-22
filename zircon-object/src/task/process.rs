@@ -12,6 +12,8 @@ use crate::object::{Handle, HandleBasicInfo, HandleValue, INVALID_HANDLE};
 use crate::object::{KObjectBase, KernelObject, KoID, Rights, Signal};
 use crate::{define_count_helper, impl_kobject};
 use crate::{signal::Futex, vm::VmAddressRegion, ZxError, ZxResult};
+//#[cfg(feature = "namespace")]
+use crate::namespace;
 
 /// Process abstraction
 ///
@@ -63,6 +65,8 @@ pub struct Process {
     exceptionate: Arc<Exceptionate>,
     debug_exceptionate: Arc<Exceptionate>,
     inner: Mutex<ProcessInner>,
+    //#[cfg(feature = "namespace")]
+    namespace:Arc<>,
 }
 
 impl_kobject!(Process
@@ -130,6 +134,7 @@ impl Process {
             exceptionate: Exceptionate::new(ExceptionChannelType::Process),
             debug_exceptionate: Exceptionate::new(ExceptionChannelType::Debugger),
             inner: Mutex::new(ProcessInner::default()),
+            namespace: ,
         });
         job.add_process(proc.clone())?;
         Ok(proc)

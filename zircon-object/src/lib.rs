@@ -29,5 +29,7 @@ pub mod signal;
 pub mod task;
 pub mod util;
 pub mod vm;
+//#[cfg(feature = "namespace")]
+pub mod namespace;
 
 pub use self::error::*;

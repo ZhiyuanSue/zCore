@@ -75,7 +75,7 @@
 * 接着处理虚拟内存和文件系统
 
 * 由Qemu启动opensbi，装载kernel并引导_start函数，初始化日志log打印，物理内存初始化，进入硬件初始化；
-* 后以slice的方式载入ramfs文件系统到内存指定地址，打开该SimpleFileSystem的文件系统并通过linux_loader调用用户程序busybox执行；
+* 后以slice的方式载入文件系统到内存指定地址，打开该SimpleFileSystem的文件系统并通过linux_loader调用用户程序busybox执行；
 
 * 解析由rcore-fs-fuse生成的Simple FileSystem，通过SimpleFileSystem::open()来打开内存中的文件系统，读取文件和目录；
 * 最后通过linux_loader::run busybox sh
