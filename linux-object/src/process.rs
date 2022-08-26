@@ -169,6 +169,10 @@ struct LinuxProcessInner {
     children: HashMap<KoID, Arc<Process>>,
     /// Signal actions
     signal_actions: SignalActions,
+    // Following is the namespaces
+    // mount namespace
+
+    //
 }
 
 #[derive(Clone)]
