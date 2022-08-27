@@ -1,19 +1,22 @@
 //#[cfg(feature = "namespace")]
 //This mod is try to let zcore have namespace and cgroup
-
-use super::*;
-use lazy_static::*;
 mod namespace;
 mod cgroup;
 
+use super::*;
+use lazy_static::*;
+use namespace::*;
+use cgroup::*;
+
 use alloc::vec::Vec;
+use alloc::string::String;
 use alloc::sync::Arc;
 use hashbrown::HashMap;
 use zircon_object::object::KObjectBase;
 
 pub type KoID = u64;
 pub struct NsManager{
-    ns_hash:HashMap<KoID,Arc<NsProxy>>,
+    ns_hash:HashMap<KoID,Arc<dyn NS + Send + Sync>>,
     init_ns:KoID,
 }
 impl NsManager{
@@ -23,13 +26,19 @@ impl NsManager{
             init_ns:0,
         })
     }
-    pub fn get_ns_proxy(self,ns_id:KoID)->Option<&Arc<NsProxy>>
+    pub fn get_ns_proxy(&self,ns_id:KoID)->Option<&Arc<NsProxy>>
     {
         match self.ns_hash.get(&ns_id).unwrap()
         {
             Some(ns_proxy) => ns_proxy.clone(),
             None => return Err(ZxError::BAD_HANDLE),
         }
+    }
+    pub fn insert(self,ns: Arc<&dyn NS>)->KoID
+    {
+        let id=ns.get_ns_id();
+        self.ns_hash.insert(id,Arc::new(ns));
+        id
     }
 }
 lazy_static!{
