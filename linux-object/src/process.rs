@@ -6,6 +6,8 @@ use crate::{
     ipc::*,
     net::SOCKET_FD,
     signal::{Signal as LinuxSignal, SignalAction},
+    //#[cfg(feature = "namespace")]
+    namespace::*,
 };
 use alloc::{
     boxed::Box,
@@ -169,10 +171,9 @@ struct LinuxProcessInner {
     children: HashMap<KoID, Arc<Process>>,
     /// Signal actions
     signal_actions: SignalActions,
-    // Following is the namespaces
-    // mount namespace
-
-    //
+    /// Namespaces
+    /// //#[cfg(feature = "namespace")]
+    ns_proxy:NsProxy,
 }
 
 #[derive(Clone)]
