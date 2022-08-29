@@ -42,9 +42,9 @@ impl IpcNs{
     pub fn new_child(&mut self)->IpcNs
     {
         let child = IpcNs::new(Some(self.get_ns_id()));
-        let child_id=child.get_ns_id();
-        let arc_vec=self.base.child_ns_vec;
-        //arc_vec.lock().
+        //let child_id=child.get_ns_id();
+        let arc_vec=&self.base.child_ns_vec;
+        arc_vec.lock();
         child
     }
 }

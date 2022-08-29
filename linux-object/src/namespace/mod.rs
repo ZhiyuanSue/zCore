@@ -21,7 +21,7 @@ use utsns::*;
 use alloc::vec::Vec;
 use alloc::string::String;
 use alloc::sync::Arc;
-use lock::mutex::Mutex;
+use lock::Mutex;
 use hashbrown::HashMap;
 use zircon_object::object::KObjectBase;
 use core::convert::TryFrom;
@@ -70,6 +70,19 @@ pub struct NsProxy{
     net_ns:     KoID,
     usr_ns:     KoID,
     cgroup_ns:  KoID,
+}
+impl Clone for NsProxy{
+    fn clone(&self) -> Self {
+        NsProxy { 
+            mnt_ns: self.mnt_ns.clone(), 
+            uts_ns: self.uts_ns.clone(), 
+            ipc_ns: self.ipc_ns.clone(), 
+            pid_ns: self.pid_ns.clone(), 
+            net_ns: self.net_ns.clone(), 
+            usr_ns: self.usr_ns.clone(), 
+            cgroup_ns: self.cgroup_ns.clone() 
+        }
+    }
 }
 impl NsProxy{
     pub fn new()->Self
@@ -211,7 +224,7 @@ impl TryFrom<NetNs> for NsEnum{
 }
 impl TryFrom<UsrNs> for NsEnum{
     fn try_from(value: UsrNs) -> Result<Self, Self::Error> {
-        if value.get_ns_type()==NSType::CLONE_NEWNET
+        if value.get_ns_type()==NSType::CLONE_NEWUSER
         {
             Ok(NsEnum::UsrNs(value))
         }
@@ -221,3 +234,16 @@ impl TryFrom<UsrNs> for NsEnum{
     }
     type Error = ();
 }
+impl TryFrom<CgroupNs> for NsEnum{
+    fn try_from(value: CgroupNs) -> Result<Self, Self::Error> {
+        if value.get_ns_type()==NSType::CLONE_NEWCGROUP
+        {
+            Ok(NsEnum::CgroupNs(value))
+        }
+        else {
+            Err(())
+        }
+    }
+    type Error = ();
+}
+

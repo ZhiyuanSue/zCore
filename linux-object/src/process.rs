@@ -477,6 +477,11 @@ impl LinuxProcess {
     pub fn shm_set(&self, id: usize, shm_id: ShmIdentifier) {
         self.inner.lock().shm_identifiers.set(id, shm_id)
     }
+
+    /// Get nsproxy
+    pub fn nsproxy_get(&self)->NsProxy{
+        self.inner.lock().ns_proxy.clone()
+    }
 }
 
 impl LinuxProcessInner {
