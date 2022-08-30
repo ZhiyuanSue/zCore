@@ -55,7 +55,11 @@ impl MntNs{
         let child = MntNs::new(Some(parent),
             new_root_fs
         );
-
+        //insert child to parent's vec
+        let child_id=child.get_ns_id();
+        let arc_vec=&self.base.child_ns_vec;
+        arc_vec.lock().push(child_id);
+        NS_MANAGER.lock().insert(Mutex::new(child.get_ns_instance()));
         child
     }
     pub fn get_root_fs(&self)->&Arc<dyn FileSystem>

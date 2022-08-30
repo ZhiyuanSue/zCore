@@ -45,7 +45,11 @@ impl PidNs{
     pub fn new_child(self)->PidNs
     {
         let child = PidNs::new(Some(self.get_ns_id()));
-
+        //insert child to parent's vec
+        let child_id=child.get_ns_id();
+        let arc_vec=&self.base.child_ns_vec;
+        arc_vec.lock().push(child_id);
+        NS_MANAGER.lock().insert(Mutex::new(child.get_ns_instance()));
         child
     }
     pub fn insert_pid(mut self,processer_id:KoID,namespace_pid:NsPid){

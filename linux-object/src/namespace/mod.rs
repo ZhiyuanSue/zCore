@@ -23,25 +23,29 @@ use alloc::string::String;
 use alloc::sync::Arc;
 use lock::Mutex;
 use hashbrown::HashMap;
-use zircon_object::object::KObjectBase;
+use zircon_object::object::*;
 use core::convert::TryFrom;
 
 pub type KoID = u64;
 pub struct NsManager{
-    ns_hash:HashMap<KoID,Arc<dyn NS + Send + Sync>>,
+    ns_hash:HashMap<KoID,Mutex<NsEnum>>,
     init_ns:KoID,
 }
 impl NsManager{
-    pub fn init()->Arc<Self>{
-        Arc::new(NsManager{
-            ns_hash:HashMap::new(),
-            init_ns:0,
-        })
+    pub fn init()->Arc<Mutex<Self>>{
+        Arc::new(
+            Mutex::new(
+                NsManager{
+                    ns_hash:HashMap::new(),
+                    init_ns:0,
+                }
+            )
+        )
     }
     pub fn get_root(self)->KoID{
         self.init_ns
     }
-    pub fn get_ns(&self,ns_id:KoID)->Option<&Arc<dyn NS + Send + Sync>>
+    pub fn get_ns(&self,ns_id:KoID)->Option<&Mutex<NsEnum>>
     {
         match self.ns_hash.get(&ns_id)
         {
@@ -51,15 +55,19 @@ impl NsManager{
             None => {return None;},
         }
     }
-    pub fn insert(mut self,ns: Arc<dyn NS + Send + Sync>)->KoID
+    pub fn insert(&mut self,ns: Mutex<NsEnum>)->KoID
     {
-        let id=ns.get_ns_id();
+        let id=ns.lock().get_ns_id();
         self.ns_hash.insert(id,ns);
         id
     }
+    pub fn set_init_ns(&mut self,ns:KoID)
+    {
+        self.init_ns=ns;
+    }
 }
 lazy_static!{
-    pub static ref NS_MANAGER:Arc<NsManager>= NsManager::init();
+    pub static ref NS_MANAGER:Arc<Mutex<NsManager>>= NsManager::init();
 }
 #[derive(Default)]
 pub struct NsProxy{
@@ -135,6 +143,7 @@ pub struct NsBase{
     parent:Option<KoID>,   //the parent might be none,so use option
     child_ns_vec:Arc<Mutex<Vec<KoID>>>,
 }
+impl_kobject!(NsBase);
 impl NsBase{
     pub fn new(nstype:NSType,parent:Option<KoID>)->Self{
         NsBase { 
@@ -247,3 +256,65 @@ impl TryFrom<CgroupNs> for NsEnum{
     type Error = ();
 }
 
+impl NS for NsEnum{
+    fn get_ns_id(&self)->KoID
+    {
+        match self{
+            NsEnum::CgroupNs(ns)=>ns.get_ns_id(),
+            NsEnum::IpcNs(ns)=>ns.get_ns_id(),
+            NsEnum::MntNs(ns)=>ns.get_ns_id(),
+            NsEnum::NetNs(ns)=>ns.get_ns_id(),
+            NsEnum::PidNs(ns)=>ns.get_ns_id(),
+            NsEnum::UsrNs(ns)=>ns.get_ns_id(),
+            NsEnum::UtsNs(ns)=>ns.get_ns_id(),
+        }
+    }
+    fn get_ns_type(&self)->NSType
+    {
+        match self{
+            NsEnum::CgroupNs(ns)=>ns.get_ns_type(),
+            NsEnum::IpcNs(ns)=>ns.get_ns_type(),
+            NsEnum::MntNs(ns)=>ns.get_ns_type(),
+            NsEnum::NetNs(ns)=>ns.get_ns_type(),
+            NsEnum::PidNs(ns)=>ns.get_ns_type(),
+            NsEnum::UsrNs(ns)=>ns.get_ns_type(),
+            NsEnum::UtsNs(ns)=>ns.get_ns_type(),
+        }
+    }
+    fn get_ns_base(&self)->&NsBase
+    {
+        match self{
+            NsEnum::CgroupNs(ns)=>ns.get_ns_base(),
+            NsEnum::IpcNs(ns)=>ns.get_ns_base(),
+            NsEnum::MntNs(ns)=>ns.get_ns_base(),
+            NsEnum::NetNs(ns)=>ns.get_ns_base(),
+            NsEnum::PidNs(ns)=>ns.get_ns_base(),
+            NsEnum::UsrNs(ns)=>ns.get_ns_base(),
+            NsEnum::UtsNs(ns)=>ns.get_ns_base(),
+        }
+    }
+    fn get_parent_ns(&self)->Option<KoID>
+    {
+        match self{
+            NsEnum::CgroupNs(ns)=>ns.get_parent_ns(),
+            NsEnum::IpcNs(ns)=>ns.get_parent_ns(),
+            NsEnum::MntNs(ns)=>ns.get_parent_ns(),
+            NsEnum::NetNs(ns)=>ns.get_parent_ns(),
+            NsEnum::PidNs(ns)=>ns.get_parent_ns(),
+            NsEnum::UsrNs(ns)=>ns.get_parent_ns(),
+            NsEnum::UtsNs(ns)=>ns.get_parent_ns(),
+        }
+    }
+    fn get_ns_instance(self)->NsEnum
+    {
+        match self{
+            NsEnum::CgroupNs(ns)=>ns.get_ns_instance(),
+            NsEnum::IpcNs(ns)=>ns.get_ns_instance(),
+            NsEnum::MntNs(ns)=>ns.get_ns_instance(),
+            NsEnum::NetNs(ns)=>ns.get_ns_instance(),
+            NsEnum::PidNs(ns)=>ns.get_ns_instance(),
+            NsEnum::UsrNs(ns)=>ns.get_ns_instance(),
+            NsEnum::UtsNs(ns)=>ns.get_ns_instance(),
+        }
+    }
+}

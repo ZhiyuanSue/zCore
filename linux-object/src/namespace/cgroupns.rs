@@ -37,12 +37,19 @@ impl CgroupNs{
     pub fn new_root()->Self
     {
         let root=CgroupNs::new(None);
+        NS_MANAGER.lock().set_init_ns(root.get_ns_id());
         root
     }
     pub fn new_child(self)->CgroupNs
     {
         let child = CgroupNs::new(Some(self.get_ns_id()));
-
+        //insert child to parent's vec
+        let child_id=child.get_ns_id();
+        let arc_vec=&self.base.child_ns_vec;
+        arc_vec.lock().push(child_id);
+        //insert child to the ns manager
+        NS_MANAGER.lock().insert(Mutex::new(child.get_ns_instance()));
+        
         child
     }
 }
