@@ -39,7 +39,7 @@ impl IpcNs{
         let root=IpcNs::new(None);
         root
     }
-    pub fn new_child(&mut self)->IpcNs
+    pub fn new_child(&mut self)
     {
         let child = IpcNs::new(Some(self.get_ns_id()));
         //insert child to parent's vec
@@ -47,6 +47,5 @@ impl IpcNs{
         let arc_vec=&self.base.child_ns_vec;
         arc_vec.lock().push(child_id);
         NS_MANAGER.lock().insert(Mutex::new(child.get_ns_instance()));
-        child
     }
 }
