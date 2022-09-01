@@ -48,7 +48,7 @@ impl MntNs{
         let root=MntNs::new(None,init_root_fs);
         root
     }
-    pub fn new_child(&self,old_root_fs:Arc<dyn FileSystem>)
+    pub fn new_child(&self,old_root_fs:Arc<dyn FileSystem>) ->KoID
     {
         let new_root_fs=self.copy_fs(old_root_fs);
         let parent=self.get_ns_id();
@@ -60,6 +60,7 @@ impl MntNs{
         let arc_vec=&self.base.child_ns_vec;
         arc_vec.lock().push(child_id);
         NS_MANAGER.lock().insert(Mutex::new(child.get_ns_instance()));
+        child_id.clone()
     }
     pub fn get_root_fs(&self)->&Arc<dyn FileSystem>
     {

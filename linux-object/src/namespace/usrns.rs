@@ -43,7 +43,7 @@ impl UsrNs{
         let root=UsrNs::new(None);
         root
     }
-    pub fn new_child(&self)
+    pub fn new_child(&self)->KoID
     {
         let child = UsrNs::new(Some(self.get_ns_id()));
         //insert child to parent's vec
@@ -51,6 +51,7 @@ impl UsrNs{
         let arc_vec=&self.base.child_ns_vec;
         arc_vec.lock().push(child_id);
         NS_MANAGER.lock().insert(Mutex::new(child.get_ns_instance()));
+        child_id.clone()
     }
     pub fn get_usrname(&self)->&str{
         self.usrname.as_str()

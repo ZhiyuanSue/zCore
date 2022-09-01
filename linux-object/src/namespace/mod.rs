@@ -25,6 +25,7 @@ use lock::Mutex;
 use hashbrown::HashMap;
 use zircon_object::object::*;
 use core::convert::TryFrom;
+use kernel_hal::user::UserInPtr;
 
 pub type KoID = u64;
 pub struct NsManager{
