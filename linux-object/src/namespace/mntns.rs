@@ -43,10 +43,13 @@ impl MntNs{
         //so the new one can be isolated with the old one
         old_root_fs.clone()
     }
-    pub fn new_root(init_root_fs:Arc<dyn FileSystem>)->Self
+    pub fn new_root(init_root_fs:Arc<dyn FileSystem>)->KoID
     {
         let root=MntNs::new(None,init_root_fs);
-        root
+        let root_id=root.get_ns_id();
+        NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWNS,root_id);
+        NS_MANAGER.lock().insert(Mutex::new(root.get_ns_instance()));
+        root_id
     }
     pub fn new_child(&self,old_root_fs:Arc<dyn FileSystem>) ->KoID
     {

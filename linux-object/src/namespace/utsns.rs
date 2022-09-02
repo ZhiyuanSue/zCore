@@ -1,5 +1,4 @@
 use core::ops::DerefMut;
-
 use super::*;
 use crate::alloc::string::ToString;
 pub struct UtsNs
@@ -63,13 +62,16 @@ impl UtsNs{
         };
         utsns
     }
-    pub fn new_root()->Self
+    pub fn new_root()->KoID
     {
         let root=UtsNs::new(None,
             "zcore".to_string(),
             "rcore-os".to_string(),
         );
-        root
+        let root_id=root.get_ns_id();
+        NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWUTS,root_id);
+        NS_MANAGER.lock().insert(Mutex::new(root.get_ns_instance()));
+        root_id
     }
     pub fn new_child(&self)->KoID
     {
@@ -119,6 +121,7 @@ impl UtsNs{
         self.domainname.clone()
     }
 }
+#[allow(dead_code)]
 pub fn copy_utsname(father_ns_id:KoID)->Option<KoID>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -137,6 +140,7 @@ pub fn copy_utsname(father_ns_id:KoID)->Option<KoID>
         None=>{ return None; }
     }
 }
+#[allow(dead_code)]
 pub fn set_host_name(ns_id:KoID, base: UserInPtr<u8>, len: usize)->Option<String>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -155,6 +159,7 @@ pub fn set_host_name(ns_id:KoID, base: UserInPtr<u8>, len: usize)->Option<String
         None=>{return None;}
     }
 }
+#[allow(dead_code)]
 pub fn set_domain_name(ns_id:KoID, base: UserInPtr<u8>, len: usize)->Option<String>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -173,6 +178,7 @@ pub fn set_domain_name(ns_id:KoID, base: UserInPtr<u8>, len: usize)->Option<Stri
         None=>{return None;}
     }
 }
+#[allow(dead_code)]
 fn get_host_name(ns_id:KoID)->Option<String>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -191,6 +197,7 @@ fn get_host_name(ns_id:KoID)->Option<String>
         None=>{ return None; }
     }
 }
+#[allow(dead_code)]
 fn get_domain_name(ns_id:KoID)->Option<String>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -209,7 +216,8 @@ fn get_domain_name(ns_id:KoID)->Option<String>
         None=>{ return None; }
     }
 }
-pub fn get_uname(ns_id:KoID)->Option<String>
+#[allow(dead_code)]
+pub fn get_uname(ns_id:KoID,buf: UserOutPtr<u8>)->SysResult
 {
     let nsmanager=NS_MANAGER.lock();
     let nsenum=nsmanager.get_ns(ns_id);
@@ -220,14 +228,22 @@ pub fn get_uname(ns_id:KoID)->Option<String>
             match e.deref(){
                 NsEnum::UtsNs(uts)=>{
                     let strings=[
-                        uts.sysname,
-                        
+                        uts.sysname.as_str(),
+                        uts.hostname.as_str(),
+                        uts.release.as_str(),
+                        uts.version.as_str(),
+                        uts.machine_arch.as_str(),
+                        uts.domainname.as_str(),
                     ];
-                    return Some(strings);
+                    for (i, &s) in strings.iter().enumerate() {
+                        const OFFSET: usize = 65;
+                        buf.add(i * OFFSET).write_cstring(s)?;
+                    }
+                    return Ok(0);
                 },
-                _=>{return None;}
+                _=>Err(LxError::EUNDEF),
             }
         },
-        None=>{ return None; }
+        None=>Err(LxError::EUNDEF)
     }
 }

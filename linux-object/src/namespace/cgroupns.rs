@@ -34,11 +34,13 @@ impl CgroupNs{
         };
         cgroupns
     }
-    pub fn new_root()->Self
+    pub fn new_root()->KoID
     {
         let root=CgroupNs::new(None);
-        NS_MANAGER.lock().set_init_ns(root.get_ns_id());
-        root
+        let root_id=root.get_ns_id();
+        NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWCGROUP,root_id);
+        NS_MANAGER.lock().insert(Mutex::new(root.get_ns_instance()));
+        root_id
     }
     pub fn new_child(&self)->KoID
     {

@@ -25,12 +25,13 @@ use lock::Mutex;
 use hashbrown::HashMap;
 use zircon_object::object::*;
 use core::convert::TryFrom;
-use kernel_hal::user::UserInPtr;
+use kernel_hal::user::{UserInPtr,UserOutPtr};
+use crate::error::{LxError, SysResult};
 
 pub type KoID = u64;
 pub struct NsManager{
     ns_hash:HashMap<KoID,Mutex<NsEnum>>,
-    init_ns:KoID,
+    init_ns:NsProxy,
 }
 impl NsManager{
     pub fn init()->Arc<Mutex<Self>>{
@@ -38,12 +39,12 @@ impl NsManager{
             Mutex::new(
                 NsManager{
                     ns_hash:HashMap::new(),
-                    init_ns:0,
+                    init_ns:NsProxy::new(),
                 }
             )
         )
     }
-    pub fn get_root(self)->KoID{
+    pub fn get_root(self)->NsProxy{
         self.init_ns
     }
     pub fn get_ns(&self,ns_id:KoID)->Option<&Mutex<NsEnum>>
@@ -62,9 +63,9 @@ impl NsManager{
         self.ns_hash.insert(id,ns);
         id
     }
-    pub fn set_init_ns(&mut self,ns:KoID)
+    pub fn set_init_ns(&mut self,ns:NSType,ns_id:KoID)
     {
-        self.init_ns=ns;
+        self.init_ns.change_proxy(ns, ns_id);
     }
 }
 lazy_static!{
@@ -106,7 +107,7 @@ impl NsProxy{
             cgroup_ns:0,
         }
     }
-    pub fn change_proxy(mut self,ns:NSType,id:KoID)
+    pub fn change_proxy(&mut self,ns:NSType,id:KoID)
     {
         match ns{
             NSType::NSTYPE_ANY          =>  (),

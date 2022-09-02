@@ -34,10 +34,13 @@ impl NetNs{
         };
         netns
     }
-    pub fn new_root()->Self
+    pub fn new_root()->KoID
     {
         let root=NetNs::new(None);
-        root
+        let root_id=root.get_ns_id();
+        NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWNET,root_id);
+        NS_MANAGER.lock().insert(Mutex::new(root.get_ns_instance()));
+        root_id
     }
     pub fn new_child(&self)->KoID
     {
