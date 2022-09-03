@@ -49,6 +49,8 @@ mod signal;
 mod task;
 mod time;
 mod vm;
+//#[cfg(feature = "namespace")]
+mod namespace;
 
 /// The struct of Syscall which stores the information about making a syscall
 pub struct Syscall<'a> {
@@ -256,9 +258,9 @@ impl Syscall<'_> {
             //            Sys::DELETE_MODULE => self.sys_delete_module(a0.into(), a1 as u32),
             // namespace
             //#[cfg(feature = "namespace")]
-            Sys::SETHOSTNAME =>(),
+            Sys::SETHOSTNAME =>self.sethostname(a0.into(),a1),
             //#[cfg(feature = "namespace")]
-            Sys::SETDOMAINNAME =>(),
+            Sys::SETDOMAINNAME =>self.setdomainname(a0.into(),a1),
             
             #[cfg(not(target_arch = "aarch64"))]
             Sys::BLOCK_IN_KERNEL => self.sys_block_in_kernel(),

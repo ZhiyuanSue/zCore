@@ -1,12 +1,13 @@
 //#[cfg(feature = "namespace")]
 //This mod is try to let zcore have namespace and cgroup
-mod cgroupns;
-mod ipcns;
-mod mntns;
-mod netns;
-mod pidns;
-mod usrns;
-mod utsns;
+#![allow(dead_code, unused_imports)]
+pub mod cgroupns;
+pub mod ipcns;
+pub mod mntns;
+pub mod netns;
+pub mod pidns;
+pub mod usrns;
+pub mod utsns;
 
 use super::*;
 use lazy_static::*;
@@ -120,6 +121,21 @@ impl NsProxy{
             NSType::CLONE_NEWUSER       =>  self.usr_ns=id,
             NSType::CLONE_NEWUTS        =>  self.uts_ns=id,
             _=>()
+        }
+    }
+    pub fn get_proxy_ns(&self,ns:NSType)->Option<KoID>
+    {
+        match ns{
+            NSType::NSTYPE_ANY          =>  None,
+            NSType::CLONE_NEWCGROUP     =>  Some(self.cgroup_ns),
+            NSType::CLONE_NEWIPC        =>  Some(self.ipc_ns),
+            NSType::CLONE_NEWNET        =>  Some(self.net_ns),
+            NSType::CLONE_NEWNS         =>  Some(self.mnt_ns),
+            NSType::CLONE_NEWPID        =>  Some(self.pid_ns),
+            NSType::CLONE_NEWTIME       =>  None,
+            NSType::CLONE_NEWUSER       =>  Some(self.usr_ns),
+            NSType::CLONE_NEWUTS        =>  Some(self.uts_ns),
+            _=>None,
         }
     }
 }

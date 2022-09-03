@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports)]
 use core::ops::DerefMut;
 use super::*;
 use crate::alloc::string::ToString;
@@ -121,7 +122,6 @@ impl UtsNs{
         self.domainname.clone()
     }
 }
-#[allow(dead_code)]
 pub fn copy_utsname(father_ns_id:KoID)->Option<KoID>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -140,7 +140,6 @@ pub fn copy_utsname(father_ns_id:KoID)->Option<KoID>
         None=>{ return None; }
     }
 }
-#[allow(dead_code)]
 pub fn set_host_name(ns_id:KoID, base: UserInPtr<u8>, len: usize)->Option<String>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -159,7 +158,6 @@ pub fn set_host_name(ns_id:KoID, base: UserInPtr<u8>, len: usize)->Option<String
         None=>{return None;}
     }
 }
-#[allow(dead_code)]
 pub fn set_domain_name(ns_id:KoID, base: UserInPtr<u8>, len: usize)->Option<String>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -178,7 +176,6 @@ pub fn set_domain_name(ns_id:KoID, base: UserInPtr<u8>, len: usize)->Option<Stri
         None=>{return None;}
     }
 }
-#[allow(dead_code)]
 fn get_host_name(ns_id:KoID)->Option<String>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -197,7 +194,6 @@ fn get_host_name(ns_id:KoID)->Option<String>
         None=>{ return None; }
     }
 }
-#[allow(dead_code)]
 fn get_domain_name(ns_id:KoID)->Option<String>
 {
     let nsmanager=NS_MANAGER.lock();
@@ -216,7 +212,6 @@ fn get_domain_name(ns_id:KoID)->Option<String>
         None=>{ return None; }
     }
 }
-#[allow(dead_code)]
 pub fn get_uname(ns_id:KoID,buf: UserOutPtr<u8>)->SysResult
 {
     let nsmanager=NS_MANAGER.lock();

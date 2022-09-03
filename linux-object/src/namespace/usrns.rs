@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports)]
 use alloc::string::ToString;
 
 use super::*;

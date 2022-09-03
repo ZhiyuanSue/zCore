@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports)]
 use super::*;
 use rcore_fs::vfs::FileSystem;
 pub struct MntNs
