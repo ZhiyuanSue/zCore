@@ -38,7 +38,6 @@ pub fn run(args: Vec<String>, envs: Vec<String>, rootfs: Arc<dyn FileSystem>) ->
     debug!("current pgt = {:#x}", pg_token);
     //调用zircon-object/src/task/thread.start设置好要执行的thread
     let (entry, sp) = loader.load(&proc.vmar(), &data, args, envs, path).unwrap();
-
     thread
         .start_with_entry(entry, sp, 0, 0, thread_fn)
         .expect("failed to start main thread");

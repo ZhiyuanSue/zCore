@@ -21,9 +21,16 @@ impl NS for CgroupNs{
     {
         self.base.parent
     }
-    fn get_ns_instance(self)->NsEnum
+    fn get_ns_instance(self)->Option<NsEnum>
     {
-        NsEnum::try_from(self).unwrap()
+        let res=NsEnum::try_from(self);
+        match res{
+            Ok(e)=>Some(e),
+            Err(_)=>{
+                warn!("no such a cgroup instance");
+                None
+            }
+        }
     }
 }
 impl CgroupNs{
@@ -40,8 +47,16 @@ impl CgroupNs{
         let root=CgroupNs::new(None);
         let root_id=root.get_ns_id();
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWCGROUP,root_id);
-        NS_MANAGER.lock().insert(Mutex::new(root.get_ns_instance()));
-        root_id
+        let ins=root.get_ns_instance();
+        match ins{
+            Some(i)=>{
+                NS_MANAGER.lock().insert(Mutex::new(i));
+                root_id
+            },
+            None=>{
+                0
+            }
+        }
     }
     pub fn new_child(&self)->KoID
     {
@@ -51,7 +66,15 @@ impl CgroupNs{
         let arc_vec=&self.base.child_ns_vec;
         arc_vec.lock().push(child_id);
         //insert child to the ns manager
-        NS_MANAGER.lock().insert(Mutex::new(child.get_ns_instance()));
-        child_id.clone()
+        let ins=child.get_ns_instance();
+        match ins{
+            Some(i)=>{
+                NS_MANAGER.lock().insert(Mutex::new(i));
+                child_id.clone()
+            },
+            None=>{
+                0
+            }
+        }
     }
 }

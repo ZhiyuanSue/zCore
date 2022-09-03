@@ -47,23 +47,6 @@ impl NsManager{
             )
         )
     }
-    pub fn set_root_ns(&mut self,rootfs: Arc<dyn FileSystem>)
-    {
-        let root_mnt_ns=MntNs::new_root(rootfs);
-        self.init_ns.change_proxy(NSType::CLONE_NEWNS, root_mnt_ns);
-        let root_cgroup_ns=CgroupNs::new_root();
-        self.init_ns.change_proxy(NSType::CLONE_NEWCGROUP, root_cgroup_ns);
-        let root_ipc_ns=IpcNs::new_root();
-        self.init_ns.change_proxy(NSType::CLONE_NEWIPC, root_ipc_ns);
-        let root_net_ns=NetNs::new_root();
-        self.init_ns.change_proxy(NSType::CLONE_NEWNET, root_net_ns);
-        let root_pid_ns=PidNs::new_root();
-        self.init_ns.change_proxy(NSType::CLONE_NEWPID, root_pid_ns);
-        let root_usr_ns=UsrNs::new_root();
-        self.init_ns.change_proxy(NSType::CLONE_NEWUSER, root_usr_ns);
-        let root_uts_ns=UtsNs::new_root();
-        self.init_ns.change_proxy(NSType::CLONE_NEWUTS, root_uts_ns);
-    }
     pub fn get_root_ns(self)->NsProxy{
         self.init_ns
     }
@@ -178,7 +161,7 @@ pub struct NsBase{
     base: KObjectBase,
     nstype:NSType,  //it should use the namespace.rs::NSType
     parent:Option<KoID>,   //the parent might be none,so use option
-    child_ns_vec:Arc<Mutex<Vec<KoID>>>,
+    child_ns_vec:Mutex<Vec<KoID>>,
     use_cnt:Mutex<usize>,  //use count
 }
 impl_kobject!(NsBase);
@@ -188,7 +171,7 @@ impl NsBase{
             base: KObjectBase::new(), 
             nstype: nstype,
             parent: parent,
-            child_ns_vec: Arc::new(Mutex::new(Vec::new())),
+            child_ns_vec: Mutex::new(Vec::new()),
             use_cnt:Mutex::new(0),
         }
     }
@@ -208,7 +191,7 @@ pub trait NS :Send + Sync{
     fn get_ns_type(&self)->NSType;
     fn get_ns_base(&self)->&NsBase;
     fn get_parent_ns(&self)->Option<KoID>;
-    fn get_ns_instance(self)->NsEnum;
+    fn get_ns_instance(self)->Option<NsEnum>;
 }
 
 pub enum NsEnum{
@@ -354,7 +337,7 @@ impl NS for NsEnum{
             NsEnum::UtsNs(ns)=>ns.get_parent_ns(),
         }
     }
-    fn get_ns_instance(self)->NsEnum
+    fn get_ns_instance(self)->Option<NsEnum>
     {
         match self{
             NsEnum::CgroupNs(ns)=>ns.get_ns_instance(),
@@ -369,5 +352,11 @@ impl NS for NsEnum{
 }
 pub fn sys_init_ns(rootfs: Arc<dyn FileSystem>)
 {
-    NS_MANAGER.lock().set_root_ns(rootfs);
+    MntNs::new_root(rootfs);
+    CgroupNs::new_root();
+    IpcNs::new_root();
+    NetNs::new_root();
+    PidNs::new_root();
+    UsrNs::new_root();
+    UtsNs::new_root();
 }
