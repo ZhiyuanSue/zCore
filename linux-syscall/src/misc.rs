@@ -5,6 +5,7 @@ use kernel_hal::timer::timer_now;
 use linux_object::time::*;
 use zircon_object::task::ThreadState;
 
+
 impl Syscall<'_> {
     #[cfg(target_arch = "x86_64")]
     /// set architecture-specific thread state
@@ -26,7 +27,21 @@ impl Syscall<'_> {
     /// get name and information about current kernel
     pub fn sys_uname(&self, buf: UserOutPtr<u8>) -> SysResult {
         info!("uname: buf={:?}", buf);
+        //#[cfg(feature = "namespace")]
+        let inner=self.thread.inner();
+        let proc=inner.proc();
+        let uts_ns_id=proc.linux().nsproxy_get().get_proxy_ns(NSType::CLONE_NEWUTS);
 
+        match uts_ns_id{
+            Some(id)=>{
+                get_uname(id,buf)
+            }
+            None=>{
+                Err(LxError::EUNDEF)
+            }
+        }
+        
+        /*
         let release = alloc::string::String::from(concat!(env!("CARGO_PKG_VERSION"), "-zcore"));
         #[cfg(not(target_os = "none"))]
         let release = release + "-libos";
@@ -57,6 +72,7 @@ impl Syscall<'_> {
             buf.add(i * OFFSET).write_cstring(s)?;
         }
         Ok(0)
+         */
     }
 
     /// provides a simple way of getting overall system statistics

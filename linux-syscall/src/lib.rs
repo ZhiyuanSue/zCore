@@ -34,6 +34,11 @@ use linux_object::process::{wait_child, wait_child_any, LinuxProcess, ProcessExt
 use zircon_object::object::{KernelObject, KoID, Signal};
 use zircon_object::task::{CurrentThread, Process, Thread, ThreadFn};
 use zircon_object::vm::VirtAddr;
+//#[cfg(feature = "namespace")]
+use linux_object::namespace::*;
+use linux_object::namespace::{
+    utsns::*,
+};
 
 use self::consts::SyscallType as Sys;
 

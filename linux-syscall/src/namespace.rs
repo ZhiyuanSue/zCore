@@ -2,10 +2,7 @@
 //#[cfg(feature = "namespace")]
 #![allow(dead_code, unused_imports)]
 use super::*;
-use linux_object::namespace::*;
-use linux_object::namespace::{
-    utsns::*,
-};
+
 impl Syscall<'_> {
     //uts ns
     /// set host name in uts namespace
