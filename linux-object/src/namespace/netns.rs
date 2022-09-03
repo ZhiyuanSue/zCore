@@ -23,14 +23,7 @@ impl NS for NetNs{
     }
     fn get_ns_instance(self)->Option<NsEnum>
     {
-        let res=NsEnum::try_from(self);
-        match res{
-            Ok(e)=>Some(e),
-            Err(_)=>{
-                warn!("no such a net instance");
-                None
-            }
-        }
+        Some(NsEnum::NetNs(self))
     }
 }
 impl NetNs{

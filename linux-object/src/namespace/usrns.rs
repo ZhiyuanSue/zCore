@@ -26,14 +26,7 @@ impl NS for UsrNs{
     }
     fn get_ns_instance(self)->Option<NsEnum>
     {
-        let res=NsEnum::try_from(self);
-        match res{
-            Ok(e)=>Some(e),
-            Err(_)=>{
-                warn!("no such a usr instance");
-                None
-            }
-        }
+        Some(NsEnum::UsrNs(self))
     }
 }
 impl UsrNs{

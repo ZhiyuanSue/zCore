@@ -47,8 +47,8 @@ impl NsManager{
             )
         )
     }
-    pub fn get_root_ns(self)->NsProxy{
-        self.init_ns
+    pub fn get_root_ns(&self)->NsProxy{
+        self.init_ns.clone()
     }
     pub fn get_ns(&self,ns_id:KoID)->Option<&Mutex<NsEnum>>
     {
@@ -57,7 +57,10 @@ impl NsManager{
             Some(ns) => {
                 return Some(ns);
             },
-            None => {return None;},
+            None => {
+                warn!("no such a namespace");
+                return None;
+            },
         }
     }
     pub fn insert(&mut self,ns: Mutex<NsEnum>)->KoID
@@ -350,13 +353,17 @@ impl NS for NsEnum{
         }
     }
 }
-pub fn sys_init_ns(rootfs: Arc<dyn FileSystem>)
+pub fn sys_init_ns(rootfs: Arc<dyn FileSystem>)->NsProxy
 {
-    MntNs::new_root(rootfs);
-    CgroupNs::new_root();
-    IpcNs::new_root();
-    NetNs::new_root();
-    PidNs::new_root();
-    UsrNs::new_root();
-    UtsNs::new_root();
+    let ns_proxy=NsProxy{
+        mnt_ns:MntNs::new_root(rootfs),
+        uts_ns:CgroupNs::new_root(),
+        ipc_ns:IpcNs::new_root(),
+        pid_ns:NetNs::new_root(),
+        net_ns:PidNs::new_root(),
+        usr_ns:UsrNs::new_root(),
+        cgroup_ns:UtsNs::new_root(),
+    };
+    NS_MANAGER.lock().init_ns=ns_proxy.clone();
+    ns_proxy
 }

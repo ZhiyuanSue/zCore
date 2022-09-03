@@ -42,8 +42,6 @@ pub trait ProcessExt {
 
 impl ProcessExt for Process {
     fn create_linux(job: &Arc<Job>, rootfs: Arc<dyn FileSystem>) -> ZxResult<Arc<Self>> {
-        //#[cfg(feature = "namespace")]
-        
         let linux_proc = LinuxProcess::new(rootfs);
         Process::create_with_ext(job, "root", linux_proc)
     }
@@ -236,11 +234,15 @@ impl LinuxProcess {
         files.insert(1.into(), stdout);
         files.insert(2.into(), stderr);
 
+        //#[cfg(feature = "namespace")]
+        let nsproxy=NS_MANAGER.lock().get_root_ns().clone();
         LinuxProcess {
             root_inode: crate::fs::create_root_fs(rootfs), //Arc::clone(&ROOT_INODE),访问磁盘可能更快？
             parent: Weak::default(),
             inner: Mutex::new(LinuxProcessInner {
                 files,
+                //#[cfg(feature = "namespace")]
+                ns_proxy:nsproxy,
                 ..Default::default()
             }),
         }
@@ -483,6 +485,10 @@ impl LinuxProcess {
     /// Get nsproxy
     pub fn nsproxy_get(&self)->NsProxy{
         self.inner.lock().ns_proxy.clone()
+    }
+    /// Set nsproxy
+    pub fn nsproxy_set_all(&mut self,nsproxy:NsProxy){
+        self.inner.lock().ns_proxy=nsproxy.clone();
     }
 }
 
