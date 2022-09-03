@@ -11,13 +11,16 @@ use kernel_hal::interrupt::{intr_off, intr_on};
 use linux_object::fs::{vfs::FileSystem, INodeExt};
 use linux_object::thread::{CurrentThreadExt, ThreadExt};
 use linux_object::{loader::LinuxElfLoader, process::ProcessExt};
+//#[cfg(feature = "namespace")]
+use linux_object::namespace::*;
 use zircon_object::task::{CurrentThread, Job, Process, Thread, ThreadState};
 use zircon_object::{object::KernelObject, vm::USER_STACK_PAGES, ZxError, ZxResult};
 
 /// Create and run main Linux process
 pub fn run(args: Vec<String>, envs: Vec<String>, rootfs: Arc<dyn FileSystem>) -> Arc<Process> {
     info!("Run Linux process: args={:?}, envs={:?}", args, envs);
-
+    //#[cfg(feature = "namespace")]
+    sys_init_ns(rootfs.clone());
     let job = Job::root();
     let proc = Process::create_linux(&job, rootfs.clone()).unwrap();
     let thread = Thread::create_linux(&proc).unwrap();
