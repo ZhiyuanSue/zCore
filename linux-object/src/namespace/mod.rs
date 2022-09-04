@@ -353,6 +353,19 @@ impl NS for NsEnum{
         }
     }
 }
+impl NsEnum{
+    pub fn new_child(&self)->KoID{
+        match self{
+            NsEnum::CgroupNs(ns)=>ns.new_child(),
+            NsEnum::IpcNs(ns)=>ns.new_child(),
+            NsEnum::MntNs(ns)=>ns.new_child(),
+            NsEnum::NetNs(ns)=>ns.new_child(),
+            NsEnum::PidNs(ns)=>ns.new_child(),
+            NsEnum::UsrNs(ns)=>ns.new_child(),
+            NsEnum::UtsNs(ns)=>ns.new_child(),
+        }
+    }
+}
 pub fn sys_init_ns(rootfs: Arc<dyn FileSystem>)->NsProxy
 {
     let ns_proxy=NsProxy{

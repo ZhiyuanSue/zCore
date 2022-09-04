@@ -38,11 +38,11 @@ impl MntNs{
         };
         mntns
     }
-    fn copy_fs(&self,old_root_fs:Arc<dyn FileSystem>)->Arc<dyn FileSystem>
+    fn copy_fs(&self)->Arc<dyn FileSystem>
     {
         //This function copy the file system and all the inode
         //so the new one can be isolated with the old one
-        old_root_fs.clone()
+        self.rootfs.clone()
     }
     pub fn new_root(init_root_fs:Arc<dyn FileSystem>)->KoID
     {
@@ -60,9 +60,9 @@ impl MntNs{
             }
         }
     }
-    pub fn new_child(&self,old_root_fs:Arc<dyn FileSystem>) ->KoID
+    pub fn new_child(&self) ->KoID
     {
-        let new_root_fs=self.copy_fs(old_root_fs);
+        let new_root_fs=self.copy_fs();
         let parent=self.get_ns_id();
         let child = MntNs::new(Some(parent),
             new_root_fs

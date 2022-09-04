@@ -481,7 +481,74 @@ impl LinuxProcess {
     pub fn shm_set(&self, id: usize, shm_id: ShmIdentifier) {
         self.inner.lock().shm_identifiers.set(id, shm_id)
     }
-
+    /// #[cfg(feature = "namespace")]
+    /// dispatch clone flag
+    pub fn clone_flag_dispatch(&self,
+        kid:usize,
+        flags: usize,
+    )
+    {
+        let inner=self.inner.lock();
+        let child=inner.children.get(&(kid as u64)).unwrap();
+        let father_nsproxy=&inner.ns_proxy;
+        let mng=NS_MANAGER.lock();
+        if (flags & 0x20000)!=0{
+            //NEWNS
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWNS).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            let mut child_inner=child.linux().inner.lock();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWNS, ns_id);
+        };
+        if(flags & 0x2000000)!=0{
+            //NEWCGROUP
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWCGROUP).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            let mut child_inner=child.linux().inner.lock();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWCGROUP, ns_id);
+        };
+        if(flags & 0x4000000)!=0{
+            //NEWUTS
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWUTS).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            let mut child_inner=child.linux().inner.lock();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWUTS, ns_id);
+        };
+        if(flags & 0x8000000)!=0{
+            //NEWIPC
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWIPC).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            let mut child_inner=child.linux().inner.lock();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWIPC, ns_id);
+        };
+        if(flags & 0x10000000)!=0{
+            //NEWUSR
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWUSER).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            let mut child_inner=child.linux().inner.lock();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWUSER, ns_id);
+        };
+        if(flags & 0x20000000)!=0{
+            //NEWPID
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            let mut child_inner=child.linux().inner.lock();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWPID, ns_id);
+        };
+        if(flags & 0x40000000)!=0{
+            //NEWNET
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWNET).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            let mut child_inner=child.linux().inner.lock();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWNET, ns_id);
+        };
+    }
     /// Get nsproxy
     pub fn nsproxy_get(&self)->NsProxy{
         self.inner.lock().ns_proxy.clone()
@@ -490,6 +557,7 @@ impl LinuxProcess {
     pub fn nsproxy_set_all(&mut self,nsproxy:NsProxy){
         self.inner.lock().ns_proxy=nsproxy.clone();
     }
+
 }
 
 impl LinuxProcessInner {

@@ -124,33 +124,15 @@ impl Syscall<'_> {
             let fork=self.sys_fork();
             //#[cfg(feature = "namespace")]
             warn!("use namespace feature");
-            if (flags & 0x20000)!=0{
-                //NEWNS
-
-            }
-            else if(flags & 0x2000000)!=0{
-                //NEWCGROUP
-
-            }
-            else if(flags & 0x4000000)!=0{
-                //NEWUTS
-
-            }
-            else if(flags & 0x8000000)!=0{
-                //NEWIPC
-
-            }
-            else if(flags & 0x10000000)!=0{
-                //NEWUSR
-            }
-            else if(flags & 0x20000000)!=0{
-                //NEWPID
-            }
-            else if(flags & 0x40000000)!=0{
-                //NEWNET
-                
-            }
-            return fork;
+            match fork{
+                Ok(kid)=>
+                {
+                    let proc_linux=self.linux_process();
+                    proc_linux.clone_flag_dispatch(kid, flags);
+                    return fork;
+                }
+                Err(e)=>e
+            };
         }
         if flags != 0x7d_0f00 && flags != 0x5d_0f00 {
             // 0x5d0f00: gcc of alpine linux
