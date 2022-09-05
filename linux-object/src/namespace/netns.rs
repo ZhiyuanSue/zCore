@@ -3,6 +3,7 @@ use super::*;
 pub struct NetNs
 {
     base:NsBase,
+    usr_ns:KoID,
 }
 impl NS for NetNs{
     fn get_ns_id(&self)->KoID
@@ -25,19 +26,23 @@ impl NS for NetNs{
     {
         Some(NsEnum::NetNs(self))
     }
+    fn get_usr_ns(&self)->KoID
+    {
+        self.usr_ns
+    }
 }
 impl NetNs{
-    fn new(parent:Option<KoID>)->Self
+    fn new(parent:Option<KoID>,usr_id:KoID)->Self
     {
         let netns=NetNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
-
+            usr_ns:usr_id,
         };
         netns
     }
-    pub fn new_root()->KoID
+    pub fn new_root(usr_id:KoID)->KoID
     {
-        let root=NetNs::new(None);
+        let root=NetNs::new(None,usr_id);
         let root_id=root.get_ns_id();
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWNET,root_id);
         let ins=root.get_ns_instance();
@@ -53,7 +58,7 @@ impl NetNs{
     }
     pub fn new_child(&self)->KoID
     {
-        let child = NetNs::new(Some(self.get_ns_id()));
+        let child = NetNs::new(Some(self.get_ns_id()),self.usr_ns);
         //insert child to parent's vec
         let child_id=child.get_ns_id();
         let arc_vec=&self.base.child_ns_vec;

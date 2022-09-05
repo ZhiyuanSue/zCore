@@ -3,6 +3,7 @@ use super::*;
 pub struct IpcNs
 {
     base:NsBase,
+    usr_ns:KoID,
 }
 impl NS for IpcNs{
     fn get_ns_id(&self)->KoID
@@ -25,19 +26,23 @@ impl NS for IpcNs{
     {
         Some(NsEnum::IpcNs(self))
     }
+    fn get_usr_ns(&self)->KoID
+    {
+        self.usr_ns
+    }
 }
 impl IpcNs{
-    fn new(parent:Option<KoID>)->Self
+    fn new(parent:Option<KoID>,usr_id:KoID)->Self
     {
         let ipcns=IpcNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
-
+            usr_ns:usr_id,
         };
         ipcns
     }
-    pub fn new_root()->KoID
+    pub fn new_root(usr_id:KoID)->KoID
     {
-        let root=IpcNs::new(None);
+        let root=IpcNs::new(None,usr_id);
         let root_id=root.get_ns_id();
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWIPC,root_id);
         let ins=root.get_ns_instance();
@@ -53,7 +58,7 @@ impl IpcNs{
     }
     pub fn new_child(&self)->KoID
     {
-        let child = IpcNs::new(Some(self.get_ns_id()));
+        let child = IpcNs::new(Some(self.get_ns_id()),self.usr_ns);
         //insert child to parent's vec
         let child_id=child.get_ns_id();
         let arc_vec=&self.base.child_ns_vec;

@@ -4,6 +4,7 @@ use rcore_fs::vfs::FileSystem;
 pub struct MntNs
 {
     base:NsBase,
+    usr_ns:KoID,
     rootfs:Arc<dyn FileSystem>,
 
 }
@@ -28,13 +29,18 @@ impl NS for MntNs{
     {
         Some(NsEnum::MntNs(self))
     }
+    fn get_usr_ns(&self)->KoID
+    {
+        self.usr_ns
+    }
 }
 impl MntNs{
-    fn new(parent:Option<KoID>,init_root_fs:Arc<dyn FileSystem>)->Self
+    fn new(parent:Option<KoID>,init_root_fs:Arc<dyn FileSystem>,usr_id:KoID)->Self
     {
         let mntns=MntNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
             rootfs:init_root_fs,
+            usr_ns:usr_id,
         };
         mntns
     }
@@ -44,9 +50,9 @@ impl MntNs{
         //so the new one can be isolated with the old one
         self.rootfs.clone()
     }
-    pub fn new_root(init_root_fs:Arc<dyn FileSystem>)->KoID
+    pub fn new_root(init_root_fs:Arc<dyn FileSystem>,usr_id:KoID)->KoID
     {
-        let root=MntNs::new(None,init_root_fs);
+        let root=MntNs::new(None,init_root_fs,usr_id);
         let root_id=root.get_ns_id();
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWNS,root_id);
         let ins=root.get_ns_instance();
@@ -65,7 +71,8 @@ impl MntNs{
         let new_root_fs=self.copy_fs();
         let parent=self.get_ns_id();
         let child = MntNs::new(Some(parent),
-            new_root_fs
+            new_root_fs,
+            self.usr_ns
         );
         //insert child to parent's vec
         let child_id=child.get_ns_id();

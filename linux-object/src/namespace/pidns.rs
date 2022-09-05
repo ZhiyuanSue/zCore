@@ -6,6 +6,7 @@ pub struct PidNs
 {
     base:NsBase,
     pid_map:HashMap<KoID,NsPid>,
+    usr_ns:KoID,
 }
 impl NS for PidNs{
     fn get_ns_id(&self)->KoID
@@ -28,19 +29,24 @@ impl NS for PidNs{
     {
         Some(NsEnum::PidNs(self))
     }
+    fn get_usr_ns(&self)->KoID
+    {
+        self.usr_ns
+    }
 }
 impl PidNs{
-    fn new(parent:Option<KoID>)->Self
+    fn new(parent:Option<KoID>,usr_id:KoID)->Self
     {
         let pidns=PidNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
             pid_map:HashMap::new(),
+            usr_ns:usr_id,
         };
         pidns
     }
-    pub fn new_root()->KoID
+    pub fn new_root(usr_id:KoID)->KoID
     {
-        let root=PidNs::new(None);
+        let root=PidNs::new(None,usr_id);
         let root_id=root.get_ns_id();
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWPID,root_id);
         let ins=root.get_ns_instance();
@@ -56,7 +62,7 @@ impl PidNs{
     }
     pub fn new_child(&self)->KoID
     {
-        let child = PidNs::new(Some(self.get_ns_id()));
+        let child = PidNs::new(Some(self.get_ns_id()),self.usr_ns);
         //insert child to parent's vec
         let child_id=child.get_ns_id();
         let arc_vec=&self.base.child_ns_vec;

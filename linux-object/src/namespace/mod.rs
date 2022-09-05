@@ -195,6 +195,7 @@ pub trait NS :Send + Sync{
     fn get_ns_base(&self)->&NsBase;
     fn get_parent_ns(&self)->Option<KoID>;
     fn get_ns_instance(self)->Option<NsEnum>;
+    fn get_usr_ns(&self)->KoID;
 }
 
 pub enum NsEnum{
@@ -352,6 +353,17 @@ impl NS for NsEnum{
             NsEnum::UtsNs(ns)=>ns.get_ns_instance(),
         }
     }
+    fn get_usr_ns(&self)->KoID{
+        match self{
+            NsEnum::CgroupNs(ns)=>ns.get_usr_ns(),
+            NsEnum::IpcNs(ns)=>ns.get_usr_ns(),
+            NsEnum::MntNs(ns)=>ns.get_usr_ns(),
+            NsEnum::NetNs(ns)=>ns.get_usr_ns(),
+            NsEnum::PidNs(ns)=>ns.get_usr_ns(),
+            NsEnum::UsrNs(ns)=>ns.get_usr_ns(),
+            NsEnum::UtsNs(ns)=>ns.get_usr_ns(),
+        }
+    }
 }
 impl NsEnum{
     pub fn new_child(&self)->KoID{
@@ -368,15 +380,17 @@ impl NsEnum{
 }
 pub fn sys_init_ns(rootfs: Arc<dyn FileSystem>)->NsProxy
 {
+    let usr_ns_id=UsrNs::new_root();
     let ns_proxy=NsProxy{
-        mnt_ns:MntNs::new_root(rootfs),
-        uts_ns:CgroupNs::new_root(),
-        ipc_ns:IpcNs::new_root(),
-        pid_ns:NetNs::new_root(),
-        net_ns:PidNs::new_root(),
-        usr_ns:UsrNs::new_root(),
-        cgroup_ns:UtsNs::new_root(),
+        mnt_ns:MntNs::new_root(rootfs,usr_ns_id),
+        uts_ns:CgroupNs::new_root(usr_ns_id),
+        ipc_ns:IpcNs::new_root(usr_ns_id),
+        pid_ns:NetNs::new_root(usr_ns_id),
+        net_ns:PidNs::new_root(usr_ns_id),
+        usr_ns:usr_ns_id,
+        cgroup_ns:UtsNs::new_root(usr_ns_id),
     };
+
     NS_MANAGER.lock().init_ns=ns_proxy.clone();
     ns_proxy
 }

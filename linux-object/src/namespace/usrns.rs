@@ -28,6 +28,10 @@ impl NS for UsrNs{
     {
         Some(NsEnum::UsrNs(self))
     }
+    fn get_usr_ns(&self)->KoID
+    {
+        self.base.base.id
+    }
 }
 impl UsrNs{
     fn new(parent:Option<KoID>)->Self

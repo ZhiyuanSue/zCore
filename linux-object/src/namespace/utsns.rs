@@ -5,6 +5,7 @@ use crate::alloc::string::ToString;
 pub struct UtsNs
 {
     base:NsBase,
+    usr_ns:KoID,
     sysname:String,
     hostname:String,    //also nodename
     release:String,
@@ -33,9 +34,13 @@ impl NS for UtsNs{
     {
         Some(NsEnum::UtsNs(self))
     }
+    fn get_usr_ns(&self)->KoID
+    {
+        self.usr_ns
+    }
 }
 impl UtsNs{
-    fn new(parent:Option<KoID>,hostname:String,domainname:String)->Self
+    fn new(parent:Option<KoID>,hostname:String,domainname:String,usr_id:KoID)->Self
     {
         let release = alloc::string::String::from(concat!(env!("CARGO_PKG_VERSION"), "-zcore"));
         #[cfg(not(target_os = "none"))]
@@ -54,6 +59,7 @@ impl UtsNs{
         };
         let utsns=UtsNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
+            usr_ns:usr_id,
             sysname:"Linux".to_string(),
             hostname:hostname,
             release:release.to_string(),
@@ -63,11 +69,12 @@ impl UtsNs{
         };
         utsns
     }
-    pub fn new_root()->KoID
+    pub fn new_root(usr_id:KoID)->KoID
     {
         let root=UtsNs::new(None,
             "zcore".to_string(),
             "rcore-os".to_string(),
+            usr_id,
         );
         let root_id=root.get_ns_id();
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWUTS,root_id);
@@ -87,6 +94,7 @@ impl UtsNs{
         let child = UtsNs::new(Some(self.get_ns_id()),
             self.hostname.clone(),
             self.domainname.clone(),
+            self.usr_ns
         );
         //insert child to parent's vec
         let child_id=child.get_ns_id();

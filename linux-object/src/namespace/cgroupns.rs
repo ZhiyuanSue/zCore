@@ -3,6 +3,7 @@
 use super::*;
 pub struct CgroupNs{
     base:NsBase,
+    usr_ns:KoID,
 }
 impl NS for CgroupNs{
     fn get_ns_id(&self)->KoID
@@ -25,19 +26,23 @@ impl NS for CgroupNs{
     {
         Some(NsEnum::CgroupNs(self))
     }
+    fn get_usr_ns(&self)->KoID
+    {
+        self.usr_ns
+    }
 }
 impl CgroupNs{
-    fn new(parent:Option<KoID>)->Self
+    fn new(parent:Option<KoID>,usr_id:KoID)->Self
     {
         let cgroupns=CgroupNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
-
+            usr_ns:usr_id,
         };
         cgroupns
     }
-    pub fn new_root()->KoID
+    pub fn new_root(usr_id:KoID)->KoID
     {
-        let root=CgroupNs::new(None);
+        let root=CgroupNs::new(None,usr_id);
         let root_id=root.get_ns_id();
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWCGROUP,root_id);
         let ins=root.get_ns_instance();
@@ -53,7 +58,7 @@ impl CgroupNs{
     }
     pub fn new_child(&self)->KoID
     {
-        let child = CgroupNs::new(Some(self.get_ns_id()));
+        let child = CgroupNs::new(Some(self.get_ns_id()),self.usr_ns);
         //insert child to parent's vec
         let child_id=child.get_ns_id();
         let arc_vec=&self.base.child_ns_vec;
