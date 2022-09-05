@@ -47,6 +47,7 @@ impl UsrNs{
     {
         let root=UsrNs::new(None);
         let root_id=root.get_ns_id();
+        warn!("new usr ns with id {}",root_id);
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWUSER,root_id);
         let ins=root.get_ns_instance();
         match ins{

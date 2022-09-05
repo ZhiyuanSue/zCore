@@ -54,6 +54,7 @@ impl MntNs{
     {
         let root=MntNs::new(None,init_root_fs,usr_id);
         let root_id=root.get_ns_id();
+        warn!("new mnt ns with id {}",root_id);
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWNS,root_id);
         let ins=root.get_ns_instance();
         match ins{

@@ -48,6 +48,7 @@ impl PidNs{
     {
         let root=PidNs::new(None,usr_id);
         let root_id=root.get_ns_id();
+        warn!("new pid ns with id {}",root_id);
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWPID,root_id);
         let ins=root.get_ns_instance();
         match ins{

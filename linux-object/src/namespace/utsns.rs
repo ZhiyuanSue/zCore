@@ -77,6 +77,7 @@ impl UtsNs{
             usr_id,
         );
         let root_id=root.get_ns_id();
+        warn!("new uts ns with id {}",root_id);
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWUTS,root_id);
         let ins=root.get_ns_instance();
         match ins{
@@ -246,7 +247,8 @@ pub fn get_uname(ns_id:KoID,buf: UserOutPtr<u8>)->SysResult
             let e=mutex_ns.lock();
             match e.deref(){
                 NsEnum::UtsNs(uts)=>{
-                    let strings=[
+                    
+                    let strings = [
                         uts.sysname.as_str(),
                         uts.hostname.as_str(),
                         uts.release.as_str(),
@@ -258,6 +260,22 @@ pub fn get_uname(ns_id:KoID,buf: UserOutPtr<u8>)->SysResult
                         const OFFSET: usize = 65;
                         buf.add(i * OFFSET).write_cstring(s)?;
                     }
+                    /*
+                    //well, the upper code is copied from old sys_uname,but it just output "Linux"
+                    //I tried to fix it but failed.
+                    //however,it is not my fault and not my work, so just let it be so.
+                    let mut bufs="".to_string();
+                    let space=" ";
+                    for &s in strings.iter() {
+                        bufs+=space;
+                        bufs+=s;
+                        //const OFFSET: usize = 65;
+                        //buf.add(i * OFFSET).write_cstring(s)?;
+                    }
+                    warn!("{}",bufs);
+                    const OFFSET: usize = 100;
+                    buf.add(OFFSET).write_cstring(&bufs)?;
+                     */
                     return Ok(0);
                 },
                 _=>Err(LxError::EUNDEF),

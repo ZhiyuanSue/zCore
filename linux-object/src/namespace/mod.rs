@@ -52,6 +52,7 @@ impl NsManager{
     }
     pub fn get_ns(&self,ns_id:KoID)->Option<&Mutex<NsEnum>>
     {
+        warn!("request ns id is {}",ns_id);
         match self.ns_hash.get(&ns_id)
         {
             Some(ns) => {
@@ -383,12 +384,12 @@ pub fn sys_init_ns(rootfs: Arc<dyn FileSystem>)->NsProxy
     let usr_ns_id=UsrNs::new_root();
     let ns_proxy=NsProxy{
         mnt_ns:MntNs::new_root(rootfs,usr_ns_id),
-        uts_ns:CgroupNs::new_root(usr_ns_id),
+        cgroup_ns:CgroupNs::new_root(usr_ns_id),
         ipc_ns:IpcNs::new_root(usr_ns_id),
-        pid_ns:NetNs::new_root(usr_ns_id),
-        net_ns:PidNs::new_root(usr_ns_id),
+        net_ns:NetNs::new_root(usr_ns_id),
+        pid_ns:PidNs::new_root(usr_ns_id),
         usr_ns:usr_ns_id,
-        cgroup_ns:UtsNs::new_root(usr_ns_id),
+        uts_ns:UtsNs::new_root(usr_ns_id),
     };
 
     NS_MANAGER.lock().init_ns=ns_proxy.clone();

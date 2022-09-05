@@ -64,6 +64,8 @@ impl ProcessExt for Process {
                 current_working_directory: linux_parent_inner.current_working_directory.clone(),
                 files: linux_parent_inner.files.clone(),
                 signal_actions: linux_parent_inner.signal_actions.clone(),
+                //#[cfg(feature = "namespace")]
+                ns_proxy:linux_parent_inner.ns_proxy.clone(),
                 ..Default::default()
             }),
         };

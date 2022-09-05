@@ -31,7 +31,6 @@ impl Syscall<'_> {
         let inner=self.thread.inner();
         let proc=inner.proc();
         let uts_ns_id=proc.linux().nsproxy_get().get_proxy_ns(NSType::CLONE_NEWUTS);
-
         match uts_ns_id{
             Some(id)=>{
                 get_uname(id,buf)
@@ -39,7 +38,7 @@ impl Syscall<'_> {
             None=>{
                 Err(LxError::EUNDEF)
             }
-        }
+        } 
         
         /*
         let release = alloc::string::String::from(concat!(env!("CARGO_PKG_VERSION"), "-zcore"));
@@ -72,7 +71,7 @@ impl Syscall<'_> {
             buf.add(i * OFFSET).write_cstring(s)?;
         }
         Ok(0)
-         */
+        */
     }
 
     /// provides a simple way of getting overall system statistics
