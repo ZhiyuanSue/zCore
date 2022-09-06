@@ -63,6 +63,9 @@ impl Syscall<'_> {
         info!("fork:");
         let new_proc = Process::fork_from(self.zircon_process(), false)?; // old pt NULL here
         let new_thread = Thread::create_linux(&new_proc)?;
+        //#[cfg(feature = "namespace")]
+        let ns_id=new_proc.linux().nsproxy_get().get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
+        insert_tid(new_thread.id(),ns_id);
         let mut new_ctx = self.thread.context_cloned()?;
         new_ctx.set_field(UserContextField::ReturnValue, 0);
         new_thread.with_context(|ctx| *ctx = new_ctx)?;
@@ -82,6 +85,9 @@ impl Syscall<'_> {
         info!("vfork:");
         let new_proc = Process::fork_from(self.zircon_process(), true)?;
         let new_thread = Thread::create_linux(&new_proc)?;
+        //#[cfg(feature = "namespace")]
+        let ns_id=new_proc.linux().nsproxy_get().get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
+        insert_tid(new_thread.id(),ns_id);
         let mut new_ctx = self.thread.context_cloned()?;
         new_ctx.set_field(UserContextField::ReturnValue, 0);
         new_thread.with_context(|ctx| *ctx = new_ctx)?;
@@ -141,6 +147,9 @@ impl Syscall<'_> {
             panic!("unsupported sys_clone flags: {:#x}", flags);
         }
         let new_thread = Thread::create_linux(self.zircon_process())?;
+        //#[cfg(feature = "namespace")]
+        let ns_id=self.linux_process().nsproxy_get().get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
+        insert_tid(new_thread.id(),ns_id);
         let mut new_ctx = self.thread.context_cloned()?;
         new_ctx.set_field(UserContextField::StackPointer, newsp);
         new_ctx.set_field(UserContextField::ThreadPointer, newtls);

@@ -554,6 +554,11 @@ impl LinuxProcess {
             child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWPID, ns_id);
             // child process must insert to the new pid ns and as root process
             insert_pid(child.id(),ns_id);
+            // insert new thread
+            let thread_ids=child.thread_ids();
+            for tid in thread_ids.iter(){
+                insert_tid(*tid,ns_id);
+            }
         };
         if(flags & 0x40000000)!=0{
             //NEWNET
