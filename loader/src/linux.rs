@@ -12,7 +12,7 @@ use linux_object::fs::{vfs::FileSystem, INodeExt};
 use linux_object::thread::{CurrentThreadExt, ThreadExt};
 use linux_object::{loader::LinuxElfLoader, process::ProcessExt};
 //#[cfg(feature = "namespace")]
-use linux_object::namespace::*;
+use linux_object::namespace::{*,pidns::*};
 use zircon_object::task::{CurrentThread, Job, Process, Thread, ThreadState};
 use zircon_object::{object::KernelObject, vm::USER_STACK_PAGES, ZxError, ZxResult};
 
@@ -20,10 +20,13 @@ use zircon_object::{object::KernelObject, vm::USER_STACK_PAGES, ZxError, ZxResul
 pub fn run(args: Vec<String>, envs: Vec<String>, rootfs: Arc<dyn FileSystem>) -> Arc<Process> {
     info!("Run Linux process: args={:?}, envs={:?}", args, envs);
     //#[cfg(feature = "namespace")]
-    sys_init_ns(rootfs.clone());
+    let root_ns_proxy=sys_init_ns(rootfs.clone());
+    let pid_ns=root_ns_proxy.get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
     let job = Job::root();
     let proc = Process::create_linux(&job, rootfs.clone()).unwrap();
+    insert_pid(proc.id(),pid_ns);
     let thread = Thread::create_linux(&proc).unwrap();
+    insert_tid(thread.id(),pid_ns);
     let loader = LinuxElfLoader {
         syscall_entry: kernel_hal::context::syscall_entry as usize,
         stack_pages: USER_STACK_PAGES,

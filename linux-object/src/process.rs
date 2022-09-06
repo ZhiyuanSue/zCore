@@ -8,6 +8,7 @@ use crate::{
     signal::{Signal as LinuxSignal, SignalAction},
     //#[cfg(feature = "namespace")]
     namespace::*,
+    namespace::pidns::*,
 };
 use alloc::{
     boxed::Box,
@@ -86,6 +87,16 @@ impl ProcessExt for Process {
             }
             false
         }));
+        //#[cfg(feature = "namespace")]
+        let pid_ns=linux_parent_inner.ns_proxy.get_proxy_ns(NSType::CLONE_NEWPID);
+        match pid_ns{
+            Some(ns)=>{
+                insert_pid(new_proc.id(),ns);
+            }
+            None=>{
+                warn!("insert pid to pid ns fail,please check");
+            }
+        };
         Ok(new_proc)
     }
 }
@@ -541,6 +552,8 @@ impl LinuxProcess {
             let ns_id=father_ns.lock().new_child();
             let mut child_inner=child.linux().inner.lock();
             child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWPID, ns_id);
+            // child process must insert to the new pid ns and as root process
+            insert_pid(child.id(),ns_id);
         };
         if(flags & 0x40000000)!=0{
             //NEWNET

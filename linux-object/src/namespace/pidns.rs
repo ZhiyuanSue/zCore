@@ -162,7 +162,7 @@ pub fn insert_tid(thread_id:KoID,pid_ns:KoID)->Option<NsTid>
     match ns_curr.deref_mut(){
         NsEnum::PidNs(p)=>
         {
-            return p.insert_pid(thread_id,nsmanager.deref());
+            return p.insert_tid(thread_id,nsmanager.deref());
         }
         _=>{return None;}
     }

@@ -325,7 +325,7 @@ impl Syscall<'_> {
         let tid = self.thread.id();
         //Ok(tid as usize)
         //#[cfg(feature = "namespace")]
-        let ns_proxy=self.thread.proc().linux().nsproxy_get();
+        let ns_proxy=self.linux_process().nsproxy_get();
         let ns_id=ns_proxy.get_proxy_ns(NSType::CLONE_NEWPID);
         match ns_id{
             Some(id)=>
@@ -350,7 +350,7 @@ impl Syscall<'_> {
         let pid = proc.id();
         //Ok(pid as usize)
         //#[cfg(feature = "namespace")]
-        let ns_proxy=self.thread.proc().linux().nsproxy_get();
+        let ns_proxy=self.linux_process().nsproxy_get();
         let ns_id=ns_proxy.get_proxy_ns(NSType::CLONE_NEWPID);
         match ns_id{
             Some(id)=>
