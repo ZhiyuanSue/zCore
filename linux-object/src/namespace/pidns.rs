@@ -143,7 +143,6 @@ impl PidNs{
 }
 pub fn insert_pid(processer_id:KoID,pid_ns:KoID)->Option<NsPid>
 {
-    warn!("insert {}",processer_id);
     let nsmanager=NS_MANAGER.lock();
     let ns_curr_enum=nsmanager.get_ns(pid_ns)?;
     let mut ns_curr=ns_curr_enum.lock();

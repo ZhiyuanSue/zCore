@@ -62,9 +62,9 @@ pub struct IpcPerm {
 }
 
 /// Semaphore set identifier (in a process)
-type SemId = usize;
+pub type SemId = usize;
 /// Shared_memory identifier (in a process)
-type ShmId = usize;
+pub type ShmId = usize;
 
 /// Semaphore number (in an array)
 type SemNum = u16;

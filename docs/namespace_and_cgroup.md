@@ -14,7 +14,7 @@
 
     IPC Namespace
 
-    PID Namespace
+    PID Namespace（done）
 
     Network Namespace
 
@@ -161,6 +161,26 @@
 9/IPC
 
     （还得看代码，没啥头绪）
+
+    zcore实现了的IPC只有semaphore和shered memory，而IPC ns在Linux中需要隔离的包括消息队列/共享内存/信号量。那个signal干啥的我不造。
+
+    涉及到的函数在ipc.rs里面基本上就全了。反正就那么几个。
+
+    但是我看了一下zcore的实现，我决定在这里对其进行一些更改。
+
+    首先我必须声明一点，namespace的目的是用户态看不到隔离开来的资源。因此，只要访问不到即可。
+
+    在linux的实现中，在IPC ns中自己建立了sem_ids,msg_ids,shm_ids,三个队列。而我如果修改zcore，工作量大不说，而且非常难弄。
+
+    但是，我可以让他访问不到。通过改写semaphores_get和shm_get，让他在获取id的时候，通过ipc ns的限制，让他访问不到对应的资源，就可以实现隔离。
+    
+    在shared memory的数据结构中有一个cpid，表明创建者进程的pid（实际上是KoID），那么方案一，是只需要创建者的koid和当前processer的koid在同一个ipc ns中才能被访问到。
+
+    信号量这边，并没有这玩意儿，考虑到semaphore.rs是参照rust的标准写的，我也不好改。所以对应的方案二的具体实现，则是同之前一样，在对应的ipc ns中实现一个vec，保存所有的semid。在查找id的时候，顺带查找一下这个id是否在里面。当然，这意味着，创建这个semaphore的时候，需要插入。
+
+    相对来说，方案二的设计更为合理，我也挺喜欢。
+
+    至于测试，我都不知道咋测试。。。
 
 10/user ns和Linux下的ns_capable函数
 

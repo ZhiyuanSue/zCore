@@ -391,7 +391,6 @@ impl Syscall<'_> {
         match ns_id{
             Some(id)=>
             {
-                warn!("getppid {}",self.zircon_process().id());
                 let pid=get_pid_ns(self.zircon_process().id(),id);
                 match pid{
                     Some(p)=>{

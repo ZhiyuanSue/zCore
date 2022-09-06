@@ -1,9 +1,12 @@
 #![allow(dead_code, unused_imports)]
 use super::*;
+use crate::ipc::*;
 pub struct IpcNs
 {
     base:NsBase,
     usr_ns:KoID,
+    sem_vec:Vec<SemId>,
+    shm_vec:Vec<ShmId>,
 }
 impl NS for IpcNs{
     fn get_ns_id(&self)->KoID
@@ -37,6 +40,8 @@ impl IpcNs{
         let ipcns=IpcNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
             usr_ns:usr_id,
+            sem_vec:Vec::new(),
+            shm_vec:Vec::new(),
         };
         ipcns
     }
@@ -75,4 +80,11 @@ impl IpcNs{
             }
         }
     }
+    pub fn insert_sem(&mut self){
+
+    }
+    pub fn insert_shm(&mut self){
+        
+    }
+    
 }
