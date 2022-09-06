@@ -37,7 +37,7 @@ use zircon_object::vm::VirtAddr;
 //#[cfg(feature = "namespace")]
 use linux_object::namespace::*;
 use linux_object::namespace::{
-    utsns::*,
+    utsns::*,pidns::*,
 };
 
 use self::consts::SyscallType as Sys;

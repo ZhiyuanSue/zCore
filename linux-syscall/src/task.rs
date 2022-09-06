@@ -323,7 +323,23 @@ impl Syscall<'_> {
     pub fn sys_gettid(&self) -> SysResult {
         info!("gettid:");
         let tid = self.thread.id();
-        Ok(tid as usize)
+        //Ok(tid as usize)
+        //#[cfg(feature = "namespace")]
+        let ns_proxy=self.thread.proc().linux().nsproxy_get();
+        let ns_id=ns_proxy.get_proxy_ns(NSType::CLONE_NEWPID);
+        match ns_id{
+            Some(id)=>
+            {
+                let tid=get_tid_ns(tid,id);
+                match tid{
+                    Some(t)=>{
+                        Ok(t as usize)
+                    }
+                    None=>Err(LxError::EUNDEF)
+                }
+            }
+            None=>Err(LxError::EUNDEF)
+        }
     }
 
     /// `sys_getpid` returns the process ID (PID) of the calling process
@@ -332,7 +348,23 @@ impl Syscall<'_> {
         info!("getpid:");
         let proc = self.zircon_process();
         let pid = proc.id();
-        Ok(pid as usize)
+        //Ok(pid as usize)
+        //#[cfg(feature = "namespace")]
+        let ns_proxy=self.thread.proc().linux().nsproxy_get();
+        let ns_id=ns_proxy.get_proxy_ns(NSType::CLONE_NEWPID);
+        match ns_id{
+            Some(id)=>
+            {
+                let tid=get_pid_ns(pid,id);
+                match tid{
+                    Some(p)=>{
+                        Ok(p as usize)
+                    }
+                    None=>Err(LxError::EUNDEF)
+                }
+            }
+            None=>Err(LxError::EUNDEF)
+        }
     }
 
     /// `sys_getppid` returns the process ID of the parent of the calling process
