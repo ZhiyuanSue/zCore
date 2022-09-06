@@ -364,8 +364,8 @@ impl Syscall<'_> {
         match ns_id{
             Some(id)=>
             {
-                let tid=get_pid_ns(pid,id);
-                match tid{
+                let pid=get_pid_ns(pid,id);
+                match pid{
                     Some(p)=>{
                         Ok(p as usize)
                     }
@@ -384,7 +384,38 @@ impl Syscall<'_> {
         info!("getppid:");
         let proc = self.linux_process();
         let ppid = proc.parent().map(|p| p.id()).unwrap_or(0);
-        Ok(ppid as usize)
+        //Ok(ppid as usize)
+        //#[cfg(feature = "namespace")]
+        let ns_proxy=self.linux_process().nsproxy_get();
+        let ns_id=ns_proxy.get_proxy_ns(NSType::CLONE_NEWPID);
+        match ns_id{
+            Some(id)=>
+            {
+                warn!("getppid {}",self.zircon_process().id());
+                let pid=get_pid_ns(self.zircon_process().id(),id);
+                match pid{
+                    Some(p)=>{
+                        // if in the pid in the curr pid ns is 1
+                        // it must be the root proc in this ns
+                        // and it cannot see it's parent
+                        // why from 1? not 0?
+                        // because the getppid in other-test might be wrong if I alloc it from 0
+                        if p!=1{
+                            let ppid=get_pid_ns(ppid,id).unwrap();
+                            Ok(ppid as usize)
+                        }
+                        else{
+                            Ok(1)
+                        }
+                    }
+                    None=>{
+                        warn!("find pid fail ,please check");
+                        return Err(LxError::EUNDEF);
+                    }
+                }
+            }
+            None=>Err(LxError::EUNDEF)
+        }
     }
 
     /// `sys_exit` system call terminates only the calling thread

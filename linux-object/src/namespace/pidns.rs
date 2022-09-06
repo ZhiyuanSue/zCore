@@ -87,17 +87,17 @@ impl PidNs{
         }
     }
     fn get_new_pid(&mut self)->NsPid{
-        let curr_max=*(self.max_pid.lock().deref());
         let mut max_pid=self.max_pid.lock();
         let pid=max_pid.deref_mut();
         (*pid)+=1;
+        let curr_max=*(max_pid.deref());
         curr_max as NsPid
     }
     fn get_new_tid(&mut self)->NsTid{
-        let curr_max=*(self.max_tid.lock().deref());
         let mut max_tid=self.max_tid.lock();
         let tid=max_tid.deref_mut();
         (*tid)+=1;
+        let curr_max=*(max_tid.deref());
         curr_max as NsPid
     }
     pub fn insert_pid(&mut self,processer_id:KoID,nsmanager:&NsManager)->Option<NsPid>{
@@ -135,7 +135,7 @@ impl PidNs{
         }
     }
     pub fn get_pid(&self,processer_id:KoID)->Option<&NsPid>{
-        self.tid_map.get(&(processer_id as u64))
+        self.pid_map.get(&(processer_id as u64))
     }
     pub fn get_tid(&self,thread_id:KoID)->Option<&NsTid>{
         self.tid_map.get(&(thread_id as u64))
@@ -143,6 +143,7 @@ impl PidNs{
 }
 pub fn insert_pid(processer_id:KoID,pid_ns:KoID)->Option<NsPid>
 {
+    warn!("insert {}",processer_id);
     let nsmanager=NS_MANAGER.lock();
     let ns_curr_enum=nsmanager.get_ns(pid_ns)?;
     let mut ns_curr=ns_curr_enum.lock();
@@ -180,7 +181,9 @@ pub fn get_pid_ns(processer_id:KoID,pid_ns:KoID)->Option<NsPid>
                 Some(pid)=>{
                     return Some(*pid);
                 },
-                None=>None,
+                None=>{
+                    None
+                },
             }
         }
         _=>{return None;}

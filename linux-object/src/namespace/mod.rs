@@ -52,7 +52,6 @@ impl NsManager{
     }
     pub fn get_ns(&self,ns_id:KoID)->Option<&Mutex<NsEnum>>
     {
-        warn!("request ns id is {}",ns_id);
         match self.ns_hash.get(&ns_id)
         {
             Some(ns) => {
