@@ -12,7 +12,7 @@
 
     UTS Namespace（done）
 
-    IPC Namespace
+    IPC Namespace（done）
 
     PID Namespace（done）
 
@@ -92,9 +92,11 @@
 
     mount使用的flag是Cloneflags::NEWNS（据说不用newmount的原因是因为当初Linux设计的时候，没考虑还会有其他的namespace，哈哈哈哈）
 
-    chroot操作：因为一开始mount namespace是将原先的那个文件系统全都拷贝一遍的，与其他的namespace不同的是，需要添加一个chroot操作，让他的根目录发生变化。
+    chroot操作：因为一开始mount namespace是将原先的那个文件系统全都拷贝一遍的，与其他的namespace不同的是，需要添加一个chroot操作，让他的根目录发生变化。但是这个chroot函数的实现，需要注意指定新的shell，不然找不到路径。
 
     关于拷贝整颗inode树的做法。这在linux中有一个copy_tree函数来实现。非常可惜的是，这并没有可用的实现给我参考。
+
+    更加讨厌的是，一开始这个rootfs这个filesystem是从zcore层向下传递的。而且每个进程的root_inode，没法更改，因为self.linux()获取到的不是&mut linuxprocessor，这个真的很讨厌。chroot根本没法子做好吧，所以需要想办法让他可以更改。
 
 6/Pid Namespace
 

@@ -17,6 +17,7 @@ use alloc::{
     sync::{Arc, Weak},
     vec::Vec,
 };
+use core::ops::DerefMut;
 use core::sync::atomic::AtomicI32;
 use hashbrown::HashMap;
 use kernel_hal::VirtAddr;
@@ -58,8 +59,28 @@ impl ProcessExt for Process {
     fn fork_from(parent: &Arc<Self>, vfork: bool) -> ZxResult<Arc<Self>> {
         let linux_parent = parent.linux();
         let mut linux_parent_inner = linux_parent.inner.lock();
+        //#[cfg(feature = "namespace")]
+        let father_nsproxy=linux_parent_inner.ns_proxy.clone();
+        let flags=father_nsproxy.get_flags();
+        let mng=NS_MANAGER.lock();
+        let mut root_inode=linux_parent.root_inode.clone();
+        if (flags & 0x20000)!=0{
+            //NEWNS
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWNS).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            
+            let mut mnt_ns=mng.get_ns(ns_id).unwrap().lock();
+            match mnt_ns.deref_mut(){
+                NsEnum::MntNs(m)=>{
+                    root_inode=m.get_root_inode().clone();
+                },
+                _=>()
+            };
+        };
+
         let new_linux_proc = LinuxProcess {
-            root_inode: linux_parent.root_inode.clone(),
+            root_inode: root_inode,
             parent: Arc::downgrade(parent),
             inner: Mutex::new(LinuxProcessInner {
                 execute_path: linux_parent_inner.execute_path.clone(),
@@ -67,18 +88,80 @@ impl ProcessExt for Process {
                 files: linux_parent_inner.files.clone(),
                 signal_actions: linux_parent_inner.signal_actions.clone(),
                 //#[cfg(feature = "namespace")]
-                ns_proxy:linux_parent_inner.ns_proxy.clone(),
+                ns_proxy:father_nsproxy.clone(),
                 ..Default::default()
             }),
         };
         let new_proc = Process::create_with_ext(&parent.job(), "", new_linux_proc)?;
+        
+        let mut child_inner=new_proc.linux().inner.lock();
+        if (flags & 0x20000)!=0{
+            //NEWNS
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWNS).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWNS, ns_id);
+        };
+        if(flags & 0x2000000)!=0{
+            //NEWCGROUP
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWCGROUP).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWCGROUP, ns_id);
+        };
+        if(flags & 0x4000000)!=0{
+            //NEWUTS
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWUTS).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWUTS, ns_id);
+        };
+        if(flags & 0x8000000)!=0{
+            //NEWIPC
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWIPC).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWIPC, ns_id);
+        };
+        if(flags & 0x10000000)!=0{
+            //NEWUSR
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWUSER).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWUSER, ns_id);
+        };
+        if(flags & 0x20000000)!=0{
+            //NEWPID
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWPID, ns_id);
+            // child process must insert to the new pid ns and as root process
+            insert_pid(new_proc.id(),ns_id);
+            // insert new thread
+            let thread_ids=new_proc.thread_ids();
+            for tid in thread_ids.iter(){
+                insert_tid(*tid,ns_id);
+            }
+        };
+        if(flags & 0x40000000)!=0{
+            //NEWNET
+            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWNET).unwrap();
+            let father_ns=mng.get_ns(father_ns_id).unwrap();
+            let ns_id=father_ns.lock().new_child();
+            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWNET, ns_id);
+        };
+        warn!("finish");
+        drop(child_inner);
+
+
         linux_parent_inner
             .children
             .insert(new_proc.id(), new_proc.clone());
         if !vfork {
             new_proc.vmar().fork_from(&parent.vmar())?;
         }
-
+        warn!("finish2");
         // notify parent on terminated
         let parent = parent.clone();
         new_proc.add_signal_callback(Box::new(move |signal| {
@@ -89,6 +172,7 @@ impl ProcessExt for Process {
             false
         }));
         //#[cfg(feature = "namespace")]
+        drop(mng);
         let pid_ns=linux_parent_inner.ns_proxy.get_proxy_ns(NSType::CLONE_NEWPID);
         match pid_ns{
             Some(ns)=>{
@@ -249,9 +333,20 @@ impl LinuxProcess {
         files.insert(2.into(), stderr);
 
         //#[cfg(feature = "namespace")]
-        let nsproxy=NS_MANAGER.lock().get_root_ns().clone();
+        let ns_mng=NS_MANAGER.lock();
+        let nsproxy=ns_mng.get_root_ns().clone();
+        let mnt_ns_id=nsproxy.get_proxy_ns(NSType::CLONE_NEWNS).unwrap();
+        let mut mnt_ns=ns_mng.get_ns(mnt_ns_id).unwrap().lock();
+        let mut root_inode=rootfs.root_inode();
+        match mnt_ns.deref_mut(){
+            NsEnum::MntNs(m)=>
+            {
+                root_inode=(m.get_root_inode()).clone();
+            },
+            _=>()
+        }
         LinuxProcess {
-            root_inode: crate::fs::create_root_fs(rootfs), //Arc::clone(&ROOT_INODE),访问磁盘可能更快？
+            root_inode: root_inode, //Arc::clone(&ROOT_INODE),访问磁盘可能更快？
             parent: Weak::default(),
             inner: Mutex::new(LinuxProcessInner {
                 files,
@@ -518,80 +613,6 @@ impl LinuxProcess {
         self.inner.lock().shm_identifiers.set(id, shm_id)
     }
     /// #[cfg(feature = "namespace")]
-    /// dispatch clone flag
-    pub fn clone_flag_dispatch(&self,
-        kid:usize,
-        flags: usize,
-    )
-    {
-        let inner=self.inner.lock();
-        let child=inner.children.get(&(kid as u64)).unwrap();
-        let father_nsproxy=&inner.ns_proxy;
-        let mng=NS_MANAGER.lock();
-        if (flags & 0x20000)!=0{
-            //NEWNS
-            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWNS).unwrap();
-            let father_ns=mng.get_ns(father_ns_id).unwrap();
-            let ns_id=father_ns.lock().new_child();
-            let mut child_inner=child.linux().inner.lock();
-            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWNS, ns_id);
-        };
-        if(flags & 0x2000000)!=0{
-            //NEWCGROUP
-            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWCGROUP).unwrap();
-            let father_ns=mng.get_ns(father_ns_id).unwrap();
-            let ns_id=father_ns.lock().new_child();
-            let mut child_inner=child.linux().inner.lock();
-            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWCGROUP, ns_id);
-        };
-        if(flags & 0x4000000)!=0{
-            //NEWUTS
-            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWUTS).unwrap();
-            let father_ns=mng.get_ns(father_ns_id).unwrap();
-            let ns_id=father_ns.lock().new_child();
-            let mut child_inner=child.linux().inner.lock();
-            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWUTS, ns_id);
-        };
-        if(flags & 0x8000000)!=0{
-            //NEWIPC
-            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWIPC).unwrap();
-            let father_ns=mng.get_ns(father_ns_id).unwrap();
-            let ns_id=father_ns.lock().new_child();
-            let mut child_inner=child.linux().inner.lock();
-            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWIPC, ns_id);
-        };
-        if(flags & 0x10000000)!=0{
-            //NEWUSR
-            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWUSER).unwrap();
-            let father_ns=mng.get_ns(father_ns_id).unwrap();
-            let ns_id=father_ns.lock().new_child();
-            let mut child_inner=child.linux().inner.lock();
-            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWUSER, ns_id);
-        };
-        if(flags & 0x20000000)!=0{
-            //NEWPID
-            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
-            let father_ns=mng.get_ns(father_ns_id).unwrap();
-            let ns_id=father_ns.lock().new_child();
-            let mut child_inner=child.linux().inner.lock();
-            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWPID, ns_id);
-            // child process must insert to the new pid ns and as root process
-            insert_pid(child.id(),ns_id);
-            // insert new thread
-            let thread_ids=child.thread_ids();
-            for tid in thread_ids.iter(){
-                insert_tid(*tid,ns_id);
-            }
-        };
-        if(flags & 0x40000000)!=0{
-            //NEWNET
-            let father_ns_id=father_nsproxy.get_proxy_ns(NSType::CLONE_NEWNET).unwrap();
-            let father_ns=mng.get_ns(father_ns_id).unwrap();
-            let ns_id=father_ns.lock().new_child();
-            let mut child_inner=child.linux().inner.lock();
-            child_inner.ns_proxy.change_proxy(NSType::CLONE_NEWNET, ns_id);
-        };
-    }
     /// Get nsproxy
     pub fn nsproxy_get(&self)->NsProxy{
         self.inner.lock().ns_proxy.clone()
@@ -599,6 +620,10 @@ impl LinuxProcess {
     /// Set nsproxy
     pub fn nsproxy_set_all(&mut self,nsproxy:NsProxy){
         self.inner.lock().ns_proxy=nsproxy.clone();
+    }
+    pub fn change_root_inode(&mut self,new_root_inode:Arc<dyn INode>)
+    {
+        self.root_inode=new_root_inode
     }
 
 }

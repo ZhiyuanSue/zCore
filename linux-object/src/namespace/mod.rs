@@ -86,6 +86,7 @@ pub struct NsProxy{
     net_ns:     KoID,
     usr_ns:     KoID,
     cgroup_ns:  KoID,
+    flags:      usize,
 }
 impl Clone for NsProxy{
     fn clone(&self) -> Self {
@@ -96,7 +97,8 @@ impl Clone for NsProxy{
             pid_ns: self.pid_ns.clone(), 
             net_ns: self.net_ns.clone(), 
             usr_ns: self.usr_ns.clone(), 
-            cgroup_ns: self.cgroup_ns.clone() 
+            cgroup_ns: self.cgroup_ns.clone() ,
+            flags:  self.flags.clone(),
         }
     }
 }
@@ -111,6 +113,7 @@ impl NsProxy{
             net_ns:0,
             usr_ns:0,
             cgroup_ns:0,
+            flags:0,
         }
     }
     pub fn change_proxy(&mut self,ns:NSType,id:KoID)
@@ -142,6 +145,15 @@ impl NsProxy{
             NSType::CLONE_NEWUTS        =>  Some(self.uts_ns),
             _=>None,
         }
+    }
+    pub fn clear_flags(&mut self){
+        self.flags=0;
+    }
+    pub fn set_flags(&mut self,flags:usize){
+        self.flags=flags;
+    }
+    pub fn get_flags(&self)->usize{
+        self.flags
     }
 }
 //#[cfg(feature = "namespace")]
@@ -366,7 +378,7 @@ impl NS for NsEnum{
     }
 }
 impl NsEnum{
-    pub fn new_child(&self)->KoID{
+    pub fn new_child(&mut self)->KoID{
         match self{
             NsEnum::CgroupNs(ns)=>ns.new_child(),
             NsEnum::IpcNs(ns)=>ns.new_child(),
@@ -389,6 +401,7 @@ pub fn sys_init_ns(rootfs: Arc<dyn FileSystem>)->NsProxy
         pid_ns:PidNs::new_root(usr_ns_id),
         usr_ns:usr_ns_id,
         uts_ns:UtsNs::new_root(usr_ns_id),
+        flags:0,
     };
 
     NS_MANAGER.lock().init_ns=ns_proxy.clone();

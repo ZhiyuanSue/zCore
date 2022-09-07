@@ -1,12 +1,14 @@
 #![allow(dead_code, unused_imports)]
 use super::*;
 use rcore_fs::vfs::FileSystem;
+use rcore_fs::vfs::INode;
+use crate::fs::*;
 pub struct MntNs
 {
     base:NsBase,
     usr_ns:KoID,
     rootfs:Arc<dyn FileSystem>,
-
+    root_inode:Arc<dyn INode>,
 }
 impl NS for MntNs{
     fn get_ns_id(&self)->KoID
@@ -35,24 +37,20 @@ impl NS for MntNs{
     }
 }
 impl MntNs{
-    fn new(parent:Option<KoID>,init_root_fs:Arc<dyn FileSystem>,usr_id:KoID)->Self
+    fn new(parent:Option<KoID>,init_root_fs:Arc<dyn FileSystem>,usr_id:KoID,root_inode:Arc<dyn INode>)->Self
     {
         let mntns=MntNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
             rootfs:init_root_fs,
             usr_ns:usr_id,
+            root_inode:root_inode,
         };
         mntns
     }
-    fn copy_fs(&self)->Arc<dyn FileSystem>
-    {
-        //This function copy the file system and all the inode
-        //so the new one can be isolated with the old one
-        self.rootfs.clone()
-    }
     pub fn new_root(init_root_fs:Arc<dyn FileSystem>,usr_id:KoID)->KoID
     {
-        let root=MntNs::new(None,init_root_fs,usr_id);
+        let root_inode=create_root_fs(init_root_fs.clone());
+        let root=MntNs::new(None,init_root_fs,usr_id,root_inode);
         let root_id=root.get_ns_id();
         warn!("new mnt ns with id {}",root_id);
         NS_MANAGER.lock().set_init_ns(NSType::CLONE_NEWNS,root_id);
@@ -67,13 +65,14 @@ impl MntNs{
             }
         }
     }
-    pub fn new_child(&self) ->KoID
+    pub fn new_child(&mut self) ->KoID
     {
-        let new_root_fs=self.copy_fs();
         let parent=self.get_ns_id();
+        let root_inode=create_root_fs(self.rootfs.clone());
         let child = MntNs::new(Some(parent),
-            new_root_fs,
-            self.usr_ns
+            self.rootfs.clone(),
+            self.usr_ns,
+            root_inode,
         );
         //insert child to parent's vec
         let child_id=child.get_ns_id();
@@ -94,8 +93,8 @@ impl MntNs{
     {
         &self.rootfs
     }
-    pub fn set_root_fs(mut self,root_fs:Arc<dyn FileSystem>)
+    pub fn get_root_inode(&self)->&Arc<dyn INode>
     {
-        self.rootfs=root_fs;
+        &self.root_inode
     }
 }

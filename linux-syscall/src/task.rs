@@ -127,18 +127,11 @@ impl Syscall<'_> {
         if (flags & 0x4111)==0x4111 || (flags & 0x11)==0x11 {
             // VFORK | VM | SIGCHILD
             warn!("sys_clone is calling sys_fork instead, ignoring other args");
-            let fork=self.sys_fork();
             //#[cfg(feature = "namespace")]
-            warn!("use namespace feature");
-            match fork{
-                Ok(kid)=>
-                {
-                    let proc_linux=self.linux_process();
-                    proc_linux.clone_flag_dispatch(kid, flags);
-                    return fork;
-                }
-                Err(e)=>e
-            };
+            self.linux_process().nsproxy_get().set_flags(flags);
+            let fork=self.sys_fork();
+            self.linux_process().nsproxy_get().clear_flags();
+            return fork;
         }
         if flags != 0x7d_0f00 && flags != 0x5d_0f00 {
             // 0x5d0f00: gcc of alpine linux
