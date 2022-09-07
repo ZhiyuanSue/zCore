@@ -150,10 +150,16 @@ pub fn sem_accessible(ns_id:KoID,sem_id:SemId)->bool
                 NsEnum::IpcNs(i)=>{
                     i.sem_accessible(sem_id)
                 }
-                _=>false
+                _=>{
+                    warn!("unaccessible");
+                    false
+                }
             }
         }
-        None=>false
+        None=>{
+            warn!("unaccessible");
+            false
+        }
     }
 }
 pub fn shm_accessible(ns_id:KoID,shm_id:SemId)->bool
@@ -168,9 +174,15 @@ pub fn shm_accessible(ns_id:KoID,shm_id:SemId)->bool
                 NsEnum::IpcNs(i)=>{
                     i.shm_accessible(shm_id)
                 }
-                _=>false
+                _=>{
+                    warn!("unaccessible");
+                    false
+                }
             }
         }
-        None=>false
+        None=>{
+            warn!("unaccessible");
+            false
+        }
     }
 }

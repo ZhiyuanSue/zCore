@@ -24,10 +24,10 @@ static void set()
 	int shmid;
 	struct shmid_ds shmid_ds;
 	void *p;
-	
+	printf("start set\n");
 	T(t = time(0));
 	T(k = ftok(path, id));
-	
+	printf("start getshm\n");
 	/* make sure we get a clean shared memory id */
 	T(shmid = shmget(k, 100, IPC_CREAT|0666));
 	T(shmctl(shmid, IPC_RMID, 0));

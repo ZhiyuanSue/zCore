@@ -199,12 +199,14 @@ impl Syscall<'_> {
             "shmget: key: {}, size: {}, shmflg: {:#x}",
             key, size, shmflg
         );
-
+        ////#[cfg(feature = "namespace")]
+        let pid_ns=self.linux_process().nsproxy_get().get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
+        let cpid=get_pid_ns(self.zircon_process().id(),pid_ns).unwrap();
         let shared_guard = ShmIdentifier::new_shared_guard(
             key as u32,
             size,
             shmflg,
-            self.zircon_process().id() as u32,
+            cpid as u32,
         )?;
         let id = self.linux_process().shm_add(shared_guard);
         Ok(id)
@@ -246,8 +248,10 @@ impl Syscall<'_> {
         )?;
         shm_identifier.addr = addr;
         self.linux_process().shm_set(id, shm_identifier.clone());
-
-        shm_guard.attach(proc.id() as u32);
+        //#[cfg(feature = "namespace")]
+        let pid_ns=self.linux_process().nsproxy_get().get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
+        let lpid=get_pid_ns(proc.id(),pid_ns).unwrap();
+        shm_guard.attach(lpid as u32);
         Ok(addr)
     }
 
@@ -265,13 +269,17 @@ impl Syscall<'_> {
         );
         let proc = self.linux_process();
         let opt_id = proc.shm_get_id(addr);
+
+        //#[cfg(feature = "namespace")]
+        let pid_ns=self.linux_process().nsproxy_get().get_proxy_ns(NSType::CLONE_NEWPID).unwrap();
+        let lpid=get_pid_ns(self.zircon_process().id(),pid_ns).unwrap();
         if let Some(id) = opt_id {
             let shm_identifier = proc.shm_get(id).ok_or(LxError::EINVAL)?;
             proc.shm_pop(id);
             shm_identifier
                 .guard
                 .lock()
-                .detach(self.zircon_process().id() as u32);
+                .detach(lpid as u32);
         }
         Ok(0)
     }
