@@ -170,9 +170,9 @@
 
     首先我必须声明一点，namespace的目的是用户态看不到隔离开来的资源。因此，只要访问不到即可。
 
-    在linux的实现中，在IPC ns中自己建立了sem_ids,msg_ids,shm_ids,三个队列。而我如果修改zcore，工作量大不说，而且非常难弄。
+    在linux的实现中，在IPC ns中自己建立了sem_ids,msg_ids,shm_ids,三个队列。因此在这里我也同样实现了这些。考虑到zcore的具体实现，我选择了一个较为取巧的方式。
 
-    但是，我可以让他访问不到。通过改写semaphores_get和shm_get，让他在获取id的时候，通过ipc ns的限制，让他访问不到对应的资源，就可以实现隔离。
+    简单来说，可以让他访问不到。通过改写semaphores_get和shm_get，让他在获取id的时候，通过ipc ns的限制，让他访问不到对应的资源，就可以实现隔离。
     
     在shared memory的数据结构中有一个cpid，表明创建者进程的pid（实际上是KoID），那么方案一，是只需要创建者的koid和当前processer的koid在同一个ipc ns中才能被访问到。
 

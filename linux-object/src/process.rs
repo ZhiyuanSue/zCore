@@ -9,6 +9,7 @@ use crate::{
     //#[cfg(feature = "namespace")]
     namespace::*,
     namespace::pidns::*,
+    namespace::ipcns::*,
 };
 use alloc::{
     boxed::Box,
@@ -452,11 +453,22 @@ impl LinuxProcess {
 
     /// Insert a `SemArray` and return its ID
     pub fn semaphores_add(&self, array: Arc<SemArray>) -> usize {
-        self.inner.lock().semaphores.add(array)
+        //#[cfg(feature = "namespace")]
+        let sem_id=self.inner.lock().semaphores.add(array);
+        let ipc_ns_id=self.nsproxy_get().get_proxy_ns(NSType::CLONE_NEWIPC).unwrap();
+        insert_sem(ipc_ns_id, sem_id);
+        sem_id
     }
 
     /// Get an semaphore set by `id`
     pub fn semaphores_get(&self, id: usize) -> Option<Arc<SemArray>> {
+        //#[cfg(feature = "namespace")]
+        let ipc_ns_id=self.nsproxy_get().get_proxy_ns(NSType::CLONE_NEWIPC).unwrap();
+        let accessible=sem_accessible(ipc_ns_id,id);
+        if accessible==false
+        {
+            return None;
+        }
         self.inner.lock().semaphores.get(id)
     }
 
@@ -477,6 +489,13 @@ impl LinuxProcess {
 
     /// get the ShmIdentifier from shm_identifiers
     pub fn shm_get(&self, id: usize) -> Option<ShmIdentifier> {
+        //#[cfg(feature = "namespace")]
+        let ipc_ns_id=self.nsproxy_get().get_proxy_ns(NSType::CLONE_NEWIPC).unwrap();
+        let accessible=shm_accessible(ipc_ns_id,id);
+        if accessible==false
+        {
+            return None;
+        }
         self.inner.lock().shm_identifiers.get(id)
     }
 
@@ -487,7 +506,11 @@ impl LinuxProcess {
 
     /// Insert the `SharedGuard` and return its ID
     pub fn shm_add(&self, shared_guard: Arc<Mutex<ShmGuard>>) -> usize {
-        self.inner.lock().shm_identifiers.add(shared_guard)
+        //#[cfg(feature = "namespace")]
+        let shm_id=self.inner.lock().shm_identifiers.add(shared_guard);
+        let ipc_ns_id=self.nsproxy_get().get_proxy_ns(NSType::CLONE_NEWIPC).unwrap();
+        insert_shm(ipc_ns_id, shm_id);
+        shm_id
     }
 
     /// Set Virtual Addr for shared memory

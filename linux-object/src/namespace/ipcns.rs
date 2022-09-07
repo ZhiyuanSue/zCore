@@ -5,8 +5,8 @@ pub struct IpcNs
 {
     base:NsBase,
     usr_ns:KoID,
-    sem_vec:Vec<SemId>,
-    shm_vec:Vec<ShmId>,
+    sem_ids:Vec<SemId>,
+    shm_ids:Vec<ShmId>,
 }
 impl NS for IpcNs{
     fn get_ns_id(&self)->KoID
@@ -40,8 +40,8 @@ impl IpcNs{
         let ipcns=IpcNs{
             base:NsBase::new(NSType::CLONE_NEWNS,parent),
             usr_ns:usr_id,
-            sem_vec:Vec::new(),
-            shm_vec:Vec::new(),
+            sem_ids:Vec::new(),
+            shm_ids:Vec::new(),
         };
         ipcns
     }
@@ -80,11 +80,97 @@ impl IpcNs{
             }
         }
     }
-    pub fn insert_sem(&mut self){
-
+    pub fn insert_sem(&mut self,sem_id:SemId){
+        self.sem_ids.push(sem_id);
     }
-    pub fn insert_shm(&mut self){
-        
+    pub fn insert_shm(&mut self,shm_id:ShmId){
+        self.shm_ids.push(shm_id);
     }
-    
+    pub fn sem_accessible(&self,sem_id:SemId)->bool{
+        let search=self.sem_ids.get(sem_id);
+        match search{
+            Some(_)=>{return true;},
+            None=>{return false;}
+        }
+    }
+    pub fn shm_accessible(&self,shm_id:ShmId)->bool
+    {
+        let search=self.shm_ids.get(shm_id);
+        match search{
+            Some(_)=>{return true;},
+            None=>{return false;}
+        }
+    }
+}
+pub fn insert_sem(ns_id:KoID,sem_id:SemId)
+{
+    let nsmanager=NS_MANAGER.lock();
+    let nsenum=nsmanager.get_ns(ns_id);
+    match nsenum{
+        Some(mutex_ns)=>
+        {
+            let mut e=mutex_ns.lock();
+            match e.deref_mut(){
+                NsEnum::IpcNs(i)=>{
+                    i.insert_sem(sem_id);
+                }
+                _=>()
+            }
+        }
+        None=>()
+    }
+}
+pub fn insert_shm(ns_id:KoID,shm_id:SemId)
+{
+    let nsmanager=NS_MANAGER.lock();
+    let nsenum=nsmanager.get_ns(ns_id);
+    match nsenum{
+        Some(mutex_ns)=>
+        {
+            let mut e=mutex_ns.lock();
+            match e.deref_mut(){
+                NsEnum::IpcNs(i)=>{
+                    i.insert_shm(shm_id);
+                }
+                _=>()
+            }
+        }
+        None=>()
+    }
+}
+pub fn sem_accessible(ns_id:KoID,sem_id:SemId)->bool
+{
+    let nsmanager=NS_MANAGER.lock();
+    let nsenum=nsmanager.get_ns(ns_id);
+    match nsenum{
+        Some(mutex_ns)=>
+        {
+            let e=mutex_ns.lock();
+            match e.deref(){
+                NsEnum::IpcNs(i)=>{
+                    i.sem_accessible(sem_id)
+                }
+                _=>false
+            }
+        }
+        None=>false
+    }
+}
+pub fn shm_accessible(ns_id:KoID,shm_id:SemId)->bool
+{
+    let nsmanager=NS_MANAGER.lock();
+    let nsenum=nsmanager.get_ns(ns_id);
+    match nsenum{
+        Some(mutex_ns)=>
+        {
+            let e=mutex_ns.lock();
+            match e.deref(){
+                NsEnum::IpcNs(i)=>{
+                    i.shm_accessible(shm_id)
+                }
+                _=>false
+            }
+        }
+        None=>false
+    }
 }
